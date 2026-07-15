@@ -1,10 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { format } from 'date-fns';
 import { getProfile } from '@/lib/supabase/server';
 import { loadExpediente } from '@/lib/expediente/repository';
 import { runMiop } from '@/lib/optimization/run';
+import { DEFAULT_LIFE_PATH } from '@/lib/calculator/life-path';
+import { deriveSubsidio52Amounts, getSubsidio52Config } from '@/lib/rules/subsidio-52';
 import { formatCurrency } from '@/lib/utils';
+import { MiopFreeSimulator } from '@/components/features/miop-free-simulator';
 
 export const metadata = { title: 'MIOP — Mejor estrategia', robots: { index: false } };
 
@@ -35,18 +39,25 @@ export default async function MiopPage() {
     );
   }
 
-  const miop = runMiop(expediente);
+  const miop = runMiop(expediente, new Date(), 'standard');
+  const defaultBase = deriveSubsidio52Amounts(getSubsidio52Config(2027)).baseCotizacion;
+  const defaultRetirement =
+    miop.podium[0]?.outcome.retirementDate != null
+      ? format(miop.podium[0].outcome.retirementDate, 'yyyy-MM-dd')
+      : format(new Date(2032, 7, 2), 'yyyy-MM-dd');
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <header>
         <h1 className="text-3xl font-semibold tracking-tight">¿Qué tienes que hacer?</h1>
         <p className="text-muted-foreground mt-2 max-w-2xl">
-          MIOP ha evaluado {miop.strategiesEvaluated} estrategias legales sobre tu expediente.
-          No pregunta «¿cuánto cobraré?» — responde «¿qué hacer para cobrar lo máximo posible?».
+          Barrido estándar: {miop.strategiesEvaluated} estrategias · modo {miop.mode} ·{' '}
+          {(miop.elapsedMs / 1000).toFixed(2)} s. Para miles de combinaciones usa el barrido denso
+          abajo.
         </p>
         <p className="text-xs text-muted-foreground mt-1">
-          Motor económico {miop.economicFingerprint} · {new Date(miop.generatedAt).toLocaleString('es-ES')}
+          Motor económico {miop.economicFingerprint} ·{' '}
+          {new Date(miop.generatedAt).toLocaleString('es-ES')}
         </p>
       </header>
 
@@ -88,8 +99,8 @@ export default async function MiopPage() {
                   <dd className="tabular-nums">{formatCurrency(s.outcome.convenioCost)}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground">Riesgo</dt>
-                  <dd>{s.dimensions.legalStability}/100 estab.</dd>
+                  <dt className="text-muted-foreground">Estabilidad</dt>
+                  <dd>{s.dimensions.legalStability}/100</dd>
                 </div>
               </dl>
               <p className="text-xs text-muted-foreground leading-relaxed">{s.explanation}</p>
@@ -121,10 +132,19 @@ export default async function MiopPage() {
         </CardContent>
       </Card>
 
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold tracking-tight">Simulador libre + barrido M4</h2>
+        <MiopFreeSimulator
+          defaultRetirementDate={defaultRetirement}
+          defaultBase={defaultBase}
+          defaultSubsidioFrom={DEFAULT_LIFE_PATH.subsidioMayores52From}
+        />
+      </section>
+
       <p className="text-xs text-muted-foreground">
-        Cálculo y recomendación están separados: el Motor de Cálculo solo produce números; MIOP
-        puntúa y explica. Parámetros legales en{' '}
-        <code>lib/rules/economic-params.json</code>.
+        Cálculo y recomendación separados. Params en{' '}
+        <code>lib/rules/economic-params.json</code>. Barrido denso = chunks async sobre{' '}
+        <code>evaluateScenario</code>.
       </p>
     </div>
   );

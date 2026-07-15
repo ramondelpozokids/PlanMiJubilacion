@@ -97,6 +97,12 @@ export function evaluateScenario(
     monthsEarly > 0 ? Math.min(50, Math.round(quarters * coef * 10000) / 100) : 0;
 
   let lifePath: LifePathAssumptions = { ...DEFAULT_LIFE_PATH };
+  if (strategy.subsidioMayores52From) {
+    lifePath = {
+      ...lifePath,
+      subsidioMayores52From: strategy.subsidioMayores52From,
+    };
+  }
   let convenioCost = 0;
   const legalFlags: string[] = [];
 
@@ -146,18 +152,33 @@ export function evaluateScenario(
     pensionMensual = applyEarlyReduction(pensionMensual, monthsEarly, yearsAtRet).monthly;
   }
 
-  const irpf = eco.irpf.defaultRetention;
+  const irpf =
+    strategy.irpfRetention != null && strategy.irpfRetention >= 0
+      ? strategy.irpfRetention
+      : eco.irpf.defaultRetention;
   const pensionNeto =
     pensionMensual != null ? round2(pensionMensual * (1 - irpf)) : null;
   const pensionAnual =
     pensionMensual != null ? round2(pensionMensual * 14) : null;
 
   const age = ageAt(birth, retirementDate);
-  const yearsLeft = Math.max(10, eco.expectancyYearsFrom65 + 65 - age);
-  const lifetimeBenefit =
+  const expectancy =
+    strategy.expectancyYearsFrom65 != null && strategy.expectancyYearsFrom65 > 0
+      ? strategy.expectancyYearsFrom65
+      : eco.expectancyYearsFrom65;
+  const yearsLeft = Math.max(10, expectancy + 65 - age);
+
+  // Inflación opcional: deflacta beneficio vida a valor presente simple
+  const inflation = strategy.inflationAnnual ?? 0;
+  let lifetimeRaw =
     pensionMensual != null
-      ? round2(pensionMensual * 14 * yearsLeft - convenioCost)
+      ? pensionMensual * 14 * yearsLeft - convenioCost
       : null;
+  if (lifetimeRaw != null && inflation > 0 && yearsLeft > 0) {
+    // media geo aproximada: divide por (1+i)^(años/2)
+    lifetimeRaw = lifetimeRaw / Math.pow(1 + inflation, yearsLeft / 2);
+  }
+  const lifetimeBenefit = lifetimeRaw != null ? round2(lifetimeRaw) : null;
 
   let breakEvenMonths: number | null = null;
   if (convenioCost > 0 && pensionMensual != null) {

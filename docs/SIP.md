@@ -58,7 +58,7 @@ Hoy vive como monolito Next.js en `lib/*` con fronteras de módulo. En Fase 5 se
 | **1** | ✅ Hecha | Núcleo: SoT, desacoplar calc, tests | Upload → expediente → recalculate → UI coherente |
 | **2** | ✅ Validada | Document Intelligence | Hash, enrich SEPE, migration 005 |
 | **3** | ✅ Lista | Cálculo + simulador | Escenarios + ERP subsidio |
-| **3.5 / 4** | 🔨 En curso | **MIOP** Optimización + podio | Grid amplio + score 100 + `/miop` top-3 |
+| **3.5 / 4** | ✅ M0–M4 | **MIOP** | Grid + score + `/miop` + simulador libre + barrido denso async |
 | **5** | ⏳ | Plataforma SIP | Packages + API + nuevos calculators |
 
 ---

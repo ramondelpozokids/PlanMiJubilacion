@@ -8,15 +8,21 @@ export type MiopPath =
   | 'subsidio52_convenio'
   | 'freeze';
 
+export type MiopSweepMode = 'standard' | 'dense';
+
 export interface MiopStrategy {
   id: string;
   name: string;
   path: MiopPath;
   retirementDate: Date;
-  /** Meses de convenio especial antes de jubilar */
   convenioMonths?: number;
   convenioBase?: number | null;
   futureMonthlyBase?: number | null;
+  /** Overrides libres (simulador MIOP) */
+  irpfRetention?: number | null;
+  expectancyYearsFrom65?: number | null;
+  subsidioMayores52From?: string | null;
+  inflationAnnual?: number | null;
   tags: string[];
 }
 
@@ -38,7 +44,11 @@ export interface MiopRunResult {
   generatedAt: string;
   economicFingerprint: string;
   strategiesEvaluated: number;
+  strategiesGenerated: number;
+  mode: MiopSweepMode;
   podium: ScoredStrategy[];
   allRanked: ScoredStrategy[];
   conclusions: string[];
+  /** Ms del barrido (útil en dense) */
+  elapsedMs: number;
 }
