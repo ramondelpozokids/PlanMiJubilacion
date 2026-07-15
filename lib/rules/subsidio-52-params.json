@@ -1,0 +1,13 @@
+{
+  "_comment": "Fuente de verdad anual. Año vacío {} hereda el anterior con datos. Cambiar un año → todo el ERP recalcula (bruto→neto→base→impacto→comparativa→informe).",
+  "2026": {
+    "iprem": 610,
+    "smi": 1381,
+    "baseMinima": 1780.62,
+    "subsidio52": 0.95,
+    "cotizacion52": 1.25,
+    "irpfDefecto": 0
+  },
+  "2027": {},
+  "2028": {}
+}

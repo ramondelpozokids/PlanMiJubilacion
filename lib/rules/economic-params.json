@@ -1,0 +1,54 @@
+{
+  "_comment": "Motor Económico central MIOP. Año vacío {} hereda. Cambiar un año → Cálculo+Optimización recalculan. Formato fórmulas vive en TS; importes/límites aquí.",
+  "2026": {
+    "iprem": 610,
+    "smi": 1381,
+    "maxPensionMonthly": 3267.6,
+    "minPension65NoSpouse": 1033.3,
+    "baseMinimaRG": 1424.4,
+    "baseMaximaRG": 5101.2,
+    "subsidio52": {
+      "pctIprem": 0.95,
+      "baseCotizacion": 1780.62,
+      "cotizacionPct": 1.25,
+      "irpfDefecto": 0
+    },
+    "convenioEspecial": {
+      "cuotaPctSobreBase": 0.283,
+      "baseMinimaDefault": 1780.62,
+      "baseMaximaDefault": 5101.2
+    },
+    "irpf": {
+      "defaultRetention": 0
+    },
+    "expectancyYearsFrom65": 20,
+    "pensionPct": {
+      "minYears": 15,
+      "yearsFor100": 36.5,
+      "basePctAt15": 50,
+      "monthlyAddFirst102": 0.21,
+      "monthlyAddAfter102": 0.19,
+      "monthsFirstBand": 102
+    },
+    "monthsForBaseReguladora": 300,
+    "divisorBr": 350,
+    "earlyVoluntaryMinAge": 63,
+    "earlyVoluntaryMinMonths": 420,
+    "delayedBonusPerYear": 0.04,
+    "earlyCoefficients": {
+      "lessThan38y6m": 0.02125,
+      "between38y6mAnd41y6m": 0.02,
+      "between41y6mAnd44y6m": 0.01875,
+      "moreThan44y6m": 0.01625
+    },
+    "miopWeights": {
+      "lifetimeBenefit": 35,
+      "monthlyPension": 25,
+      "lowUpfrontCost": 15,
+      "roiBreakEven": 15,
+      "legalStability": 10
+    }
+  },
+  "2027": {},
+  "2028": {}
+}

@@ -1,0 +1,19 @@
+{
+  "framework": "nextjs",
+  "regions": ["mad1"],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, must-revalidate" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" }
+      ]
+    }
+  ],
+  "redirects": [
+    { "source": "/app", "destination": "/dashboard", "permanent": true },
+    { "source": "/pages/:path*", "destination": "/dashboard", "permanent": true },
+    { "source": "/index.html", "destination": "/", "permanent": true },
+    { "source": "/legal/:page.html", "destination": "/legal/:page", "permanent": true }
+  ]
+}
