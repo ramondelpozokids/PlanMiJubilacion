@@ -51,6 +51,10 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true },
   },
   alternates: { canonical: 'https://planmijubilacion.es' },
+  icons: {
+    icon: [{ url: '/logo1.png', type: 'image/png' }],
+    apple: [{ url: '/logo1.png', type: 'image/png' }],
+  },
 };
 
 export const viewport: Viewport = {

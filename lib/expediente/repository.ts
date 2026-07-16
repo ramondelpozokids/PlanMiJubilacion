@@ -14,7 +14,14 @@ export async function loadExpediente(userId: string): Promise<ExpedienteDigital 
     .maybeSingle();
 
   if (error || !data?.data) return null;
-  return data.data as ExpedienteDigital;
+  const exp = data.data as ExpedienteDigital;
+  const { pruneExpedienteToToday } = await import('./merge');
+  const before = exp.bases.length;
+  pruneExpedienteToToday(exp);
+  if (exp.bases.length !== before) {
+    await saveExpediente(exp);
+  }
+  return exp;
 }
 
 export async function saveExpediente(expediente: ExpedienteDigital): Promise<void> {

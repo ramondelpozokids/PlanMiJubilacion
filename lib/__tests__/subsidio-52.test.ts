@@ -23,10 +23,10 @@ describe('cadena ERP', () => {
     ]);
   });
 
-  it('bruto = IPREM × 95%', () => {
+  it('bruto = 480 €/mes (80% IPREM, importe fijo JSON)', () => {
     const d = deriveSubsidio52Amounts(getSubsidio52Config(2026));
-    expect(d.subsidioBruto).toBe(610 * 0.95);
-    expect(d.subsidioNeto).toBe(579.5);
+    expect(d.subsidioBruto).toBe(480);
+    expect(d.subsidioNeto).toBe(480);
     expect(d.baseCotizacion).toBe(1780.62);
   });
 
@@ -57,7 +57,7 @@ describe('cadena ERP', () => {
     });
     expect(pipe.informe.steps).toHaveLength(6);
     expect(pipe.informe.formulaBruto).toMatch(/IPREM/);
-    expect(pipe.comparativa.tuEscenario.subsidioBruto).toBe(579.5);
+    expect(pipe.comparativa.tuEscenario.subsidioBruto).toBe(480);
     expect(pipe.comparativa.tuEscenario.pensionMensual).toBe(2000);
     expect(pipe.paramsFingerprint).toMatch(/^s52-/);
   });

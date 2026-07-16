@@ -37,6 +37,36 @@ export const DEFAULT_LIFE_PATH: LifePathAssumptions = {
   desempleoBaseAntesSubsidio: 0,
 };
 
+/** Asesoría: sin subsidio hasta que el fundador lo active en la consulta. */
+export const DEFAULT_CONSULTATION_LIFE_PATH: LifePathAssumptions = {
+  currentlyUnemployed: false,
+  subsidioMayores52From: '2099-01',
+  subsidioCotizacionBase: null,
+  desempleoBaseAntesSubsidio: 0,
+};
+
+export function isSubsidio52Active(life: LifePathAssumptions): boolean {
+  const sub = parseYearMonth(life.subsidioMayores52From);
+  if (!sub) return false;
+  return sub.year < 2090;
+}
+
+export function parseLifePathJson(raw: unknown): LifePathAssumptions {
+  if (!raw || typeof raw !== 'object') return { ...DEFAULT_CONSULTATION_LIFE_PATH };
+  const o = raw as Record<string, unknown>;
+  return {
+    currentlyUnemployed: Boolean(o.currentlyUnemployed),
+    subsidioMayores52From:
+      typeof o.subsidioMayores52From === 'string'
+        ? o.subsidioMayores52From
+        : DEFAULT_CONSULTATION_LIFE_PATH.subsidioMayores52From,
+    subsidioCotizacionBase:
+      typeof o.subsidioCotizacionBase === 'number' ? o.subsidioCotizacionBase : null,
+    desempleoBaseAntesSubsidio:
+      typeof o.desempleoBaseAntesSubsidio === 'number' ? o.desempleoBaseAntesSubsidio : 0,
+  };
+}
+
 export function parseYearMonth(ym: string): { year: number; month: number } | null {
   const m = ym.match(/^(\d{4})-(\d{2})$/);
   if (!m) return null;

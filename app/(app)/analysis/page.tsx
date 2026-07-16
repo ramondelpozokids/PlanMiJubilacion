@@ -7,6 +7,7 @@ import { ExpedienteReport } from '@/components/features/expediente-report';
 import { VidaLaboralReport } from '@/components/features/vida-laboral-report';
 import { OpenAiConfigBanner } from '@/components/features/openai-config-banner';
 import { ProcessingAutoRefresh } from '@/components/features/processing-auto-refresh';
+import { ReportToolbar } from '@/components/features/print-button';
 import { loadExpediente } from '@/lib/expediente/repository';
 import type { ExpedienteDigital } from '@/lib/expediente/types';
 import { isFullDocumentExtraction } from '@/lib/ai/vida-laboral-types';
@@ -56,16 +57,15 @@ export default async function AnalysisPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight">Tu expediente</h1>
-        <p className="text-muted-foreground mt-2 max-w-2xl">
-          Toda la información extraída de tus PDF, fusionada en un solo sitio. Aquí está lo que
-          buscas — no hace falta abrir documento por documento.
-        </p>
-      </header>
+      <ReportToolbar
+        title="Tu expediente"
+        subtitle="Información fusionada de tus PDF. Una sola fuente de verdad — sin abrir documento a documento."
+      />
 
       <OpenAiConfigBanner />
-      <ProcessingAutoRefresh active={stuckCount > 0} />
+      <div className="no-print">
+        <ProcessingAutoRefresh active={stuckCount > 0} />
+      </div>
 
       {stuckCount > 0 && (
         <div className="rounded-lg border border-warning/40 bg-warning/10 p-4 text-sm">
@@ -101,7 +101,7 @@ export default async function AnalysisPage() {
         </Card>
       )}
 
-      <Card>
+      <Card className="no-print">
         <CardHeader className="flex flex-row items-center justify-between gap-4">
           <div>
             <CardTitle>Archivos subidos ({documents.length})</CardTitle>

@@ -1,44 +1,82 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/layout/logo';
+import { SiteFooter } from '@/components/layout/site-footer';
 import { getUser } from '@/lib/supabase/server';
+import { PlanMiSuite } from '@/components/features/planmi-suite';
+import { PLANMI_BRAND } from '@/lib/planmi/products';
 
 export default async function HomePage() {
   const user = await getUser();
 
   return (
     <main className="min-h-screen">
-      <header className="border-b">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Logo />
+      <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-20 print:hidden">
+        <div className="max-w-6xl mx-auto px-6 py-6 md:py-7 flex items-center justify-between gap-4">
+          <Logo priority size="home" />
           <div className="flex gap-3">
             {user ? (
-              <Link href="/dashboard"><Button>Ir al dashboard</Button></Link>
+              <Link href="/dashboard">
+                <Button>Ir al dashboard</Button>
+              </Link>
             ) : (
               <>
-                <Link href="/login"><Button variant="ghost">Iniciar sesión</Button></Link>
-                <Link href="/login"><Button>Empezar gratis</Button></Link>
+                <Link href="/login">
+                  <Button variant="ghost">Iniciar sesión</Button>
+                </Link>
+                <Link href="/login">
+                  <Button>Empezar</Button>
+                </Link>
               </>
             )}
           </div>
         </div>
       </header>
 
-      <section className="max-w-6xl mx-auto px-6 py-20 text-center">
-        <h1 className="text-4xl md:text-6xl font-semibold tracking-tight max-w-3xl mx-auto">
-          Planifica tu jubilación con IA
-        </h1>
-        <p className="text-lg text-muted-foreground mt-6 max-w-2xl mx-auto">
-          Sube tu vida laboral y descubre cuánto cobrarás, cuándo jubilarte y cómo maximizar tu pensión.
-        </p>
-        <div className="mt-10 flex flex-wrap justify-center gap-4">
-          <Link href={user ? '/upload' : '/login'}><Button size="lg">Subir documentos</Button></Link>
-          <Link href="/login"><Button size="lg" variant="secondary">Ver demo</Button></Link>
+      <section className="relative overflow-hidden border-b">
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_420px_at_80%_-10%,hsla(239,84%,67%,0.16),transparent_60%),radial-gradient(700px_360px_at_10%_20%,hsla(160,84%,39%,0.12),transparent_55%)]"
+          aria-hidden
+        />
+        <div className="relative max-w-6xl mx-auto px-6 py-20 md:py-28">
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground animate-fade-up">
+            {PLANMI_BRAND}
+          </p>
+          <h1 className="mt-4 text-4xl md:text-6xl font-semibold tracking-tight max-w-3xl animate-fade-up [animation-delay:60ms]">
+            PlanMiFuturo
+          </h1>
+          <p className="mt-5 text-lg text-muted-foreground max-w-2xl leading-relaxed animate-fade-up [animation-delay:120ms]">
+            Plataforma integral de planificación social y financiera. Jubilación, prestaciones y
+            vida laboral sobre un mismo expediente digital.
+          </p>
+          <div className="mt-10 flex flex-wrap gap-4 animate-fade-up [animation-delay:180ms] print:hidden">
+            <Link href={user ? '/dashboard' : '/login'}>
+              <Button size="lg">{user ? 'Abrir mi suite' : 'Empezar gratis'}</Button>
+            </Link>
+            <Link href={user ? '/upload' : '/login'}>
+              <Button size="lg" variant="secondary">
+                Subir documentos
+              </Button>
+            </Link>
+          </div>
+          <p className="mt-8 text-xs text-muted-foreground max-w-xl">
+            Simulaciones orientativas. No sustituyen el cálculo oficial de la Seguridad Social.
+          </p>
         </div>
-        <p className="text-xs text-muted-foreground mt-8 max-w-xl mx-auto">
-          Simulaciones orientativas. No sustituyen el cálculo oficial de la Seguridad Social.
-        </p>
       </section>
+
+      <section className="max-w-6xl mx-auto px-6 py-16 md:py-20">
+        <div className="mb-8 max-w-2xl">
+          <h2 className="text-2xl md:text-3xl font-semibold tracking-tight">Cuatro productos</h2>
+          <p className="mt-3 text-muted-foreground text-sm sm:text-base">
+            Cuatro productos sobre el mismo expediente digital: jubilación, prestaciones, vida
+            laboral y visión integral.
+          </p>
+        </div>
+        <PlanMiSuite variant="marketing" loggedIn={Boolean(user)} />
+      </section>
+
+      <SiteFooter />
     </main>
   );
 }

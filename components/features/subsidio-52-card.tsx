@@ -1,27 +1,56 @@
-import type { ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { RetirementOutlook } from '@/lib/calculator/retirement-outlook';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrencyExact, cn } from '@/lib/utils';
+import { PrintButton } from '@/components/features/print-button';
+import { CollapsibleSection } from '@/components/features/collapsible-section';
 
-function Step({
-  n,
-  title,
-  children,
+function Metric({
+  label,
+  value,
+  hint,
+  emphasize,
 }: {
-  n: number;
-  title: string;
-  children: ReactNode;
+  label: string;
+  value: string;
+  hint?: string;
+  emphasize?: boolean;
 }) {
   return (
-    <div className="relative pl-8 pb-6 last:pb-0">
-      <div className="absolute left-0 top-0 flex h-6 w-6 items-center justify-center rounded-full border bg-background text-xs font-semibold">
-        {n}
-      </div>
-      {n < 6 && (
-        <div className="absolute left-[11px] top-6 bottom-0 w-px bg-border" aria-hidden />
+    <div
+      className={cn(
+        'rounded-lg border p-4',
+        emphasize ? 'border-foreground/20 bg-muted/40' : 'bg-muted/15'
       )}
-      <p className="text-xs uppercase tracking-wide text-muted-foreground">{title}</p>
-      <div className="mt-1">{children}</div>
+    >
+      <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-2 text-2xl font-semibold tabular-nums tracking-tight">{value}</p>
+      {hint && <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{hint}</p>}
+    </div>
+  );
+}
+
+function CompareRow({
+  label,
+  value,
+  muted,
+}: {
+  label: string;
+  value: string;
+  muted?: boolean;
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 border-b border-border/50 py-2.5 last:border-0">
+      <span className={cn('text-sm', muted && 'text-muted-foreground')}>{label}</span>
+      <span
+        className={cn(
+          'shrink-0 tabular-nums text-sm font-semibold',
+          muted && 'font-normal text-muted-foreground'
+        )}
+      >
+        {value}
+      </span>
     </div>
   );
 }
@@ -32,150 +61,117 @@ export function Subsidio52Card({ outlook }: { outlook: RetirementOutlook }) {
   const cfg = s.config;
   const c = pipe.comparativa;
   const informe = pipe.informe;
+  const pct = (cfg.subsidioPercentOfIprem * 100).toFixed(0);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Pipeline subsidio +52</CardTitle>
-        <p className="text-sm text-muted-foreground font-normal">
-          IPREM × {(cfg.subsidioPercentOfIprem * 100).toFixed(0)}% → neto → base → impacto →
-          comparativa → informe. Params {pipe.paramsFingerprint}
-          {cfg.status === 'provisional' && (
-            <span className="text-warning"> · año provisional (herencia JSON)</span>
-          )}
-        </p>
-      </CardHeader>
-      <CardContent>
-        <div className="grid lg:grid-cols-2 gap-8">
+    <Card className="print-root overflow-hidden">
+      <CardHeader className="space-y-3 border-b bg-muted/20">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <Step n={1} title="Subsidio bruto = IPREM × 95%">
-              <p className="text-2xl font-semibold tabular-nums">
-                {formatCurrency(s.monthly.bruto)}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {formatCurrency(cfg.ipremMonthly)} × {cfg.subsidioPercentOfIprem} ·{' '}
-                {informe.formulaBruto}
-              </p>
-            </Step>
-
-            <Step n={2} title="Subsidio neto">
-              <p className="text-xl font-semibold tabular-nums">
-                {formatCurrency(s.monthly.neto)}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                IRPF {(cfg.irpfRetentionRate * 100).toFixed(0)}% ·{' '}
-                {formatCurrency(s.monthly.irpf)} retención
-              </p>
-            </Step>
-
-            <Step n={3} title="Base cotización">
-              <p className="text-xl font-semibold tabular-nums">
-                {formatCurrency(s.monthly.baseCotizacion)}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                JSON baseMinima · coef. legal ×{cfg.cotizacionPercentOfMinima} · anual{' '}
-                {formatCurrency(s.annual.baseCotizacion)}
-              </p>
-            </Step>
-
-            <Step n={4} title="Impacto jubilación">
-              <p className="text-xl font-semibold tabular-nums">
-                {outlook.pension.ordinaryResult
-                  ? formatCurrency(outlook.pension.ordinaryResult.monthlyPension)
-                  : '—'}
-                <span className="text-sm font-normal text-muted-foreground"> /mes pensión</span>
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {s.untilRetirement.months} meses +52 · total cobrado{' '}
-                {formatCurrency(s.untilRetirement.totalBruto)} · bases acumuladas{' '}
-                {formatCurrency(s.untilRetirement.totalBaseCotizacion)}
-              </p>
-            </Step>
-
-            <Step n={5} title="Comparativa">
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between gap-4 border-b border-border/40 py-1">
-                  <span>{c.tuEscenario.label}</span>
-                  <span className="font-medium tabular-nums">
-                    {c.tuEscenario.pensionMensual != null
-                      ? formatCurrency(c.tuEscenario.pensionMensual)
-                      : '—'}
-                  </span>
-                </div>
-                <div className="flex justify-between gap-4 border-b border-border/40 py-1">
-                  <span>{c.sinCotizarMas.label}</span>
-                  <span className="tabular-nums">
-                    {c.sinCotizarMas.pensionMensual != null
-                      ? formatCurrency(c.sinCotizarMas.pensionMensual)
-                      : '—'}
-                  </span>
-                </div>
-                <div className="flex justify-between gap-4 border-b border-border/40 py-1">
-                  <span>{c.simulacionSs.label}</span>
-                  <span className="tabular-nums text-muted-foreground">
-                    {c.simulacionSs.pensionMensual != null
-                      ? formatCurrency(c.simulacionSs.pensionMensual)
-                      : '—'}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground pt-1">
-                  Δ freeze{' '}
-                  {c.deltas.vsFreeze != null
-                    ? `${c.deltas.vsFreeze >= 0 ? '+' : ''}${formatCurrency(c.deltas.vsFreeze)}`
-                    : '—'}
-                  {' · '}Δ sim SS{' '}
-                  {c.deltas.vsSimSs != null
-                    ? `${c.deltas.vsSimSs >= 0 ? '+' : ''}${formatCurrency(c.deltas.vsSimSs)}`
-                    : '—'}
-                </p>
-              </div>
-            </Step>
-
-            <Step n={6} title="Informe">
-              <ul className="text-sm space-y-1">
-                {informe.steps.map((st) => (
-                  <li key={st.id}>
-                    <span className="text-muted-foreground">{st.label}:</span> {st.value}
-                  </li>
-                ))}
-              </ul>
-            </Step>
+            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+              Escenario vital
+            </p>
+            <CardTitle className="mt-1 text-xl tracking-tight">
+              Subsidio mayores de 52 años
+            </CardTitle>
+            <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+              {formatCurrencyExact(s.monthly.bruto)}/mes en 12 pagas · el SEPE no retiene IRPF ·
+              cotización a la Seguridad Social incluida.
+            </p>
           </div>
-
-          <div className="space-y-4">
-            <div className="rounded-md border bg-muted/20 p-4 space-y-2">
-              <p className="text-sm font-medium">2028 · Cambian bases</p>
-              <p className="text-sm text-muted-foreground">
-                Editas <code className="text-xs">lib/rules/subsidio-52-params.json</code> →
-                el ERP recalcula bruto, neto, base, pensión, escenarios e informe en el
-                siguiente outlook / recalculate.
-              </p>
-              <pre className="text-xs overflow-x-auto rounded border bg-background p-3 mt-2">{`{
-  "2028": {
-    "iprem": 610,
-    "smi": 1381,
-    "baseMinima": 1780.62,
-    "subsidio52": 0.95,
-    "cotizacion52": 1.25,
-    "irpfDefecto": 0
-  }
-}`}</pre>
-              <p className="text-xs text-muted-foreground">
-                Ahora 2027/2028 están vacíos → heredan 2026. Años en JSON:{' '}
-                {informe.yearsInParams.join(', ')}.
-              </p>
-            </div>
-
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p>{cfg.notes}</p>
-              <ul className="list-disc pl-4">
-                {cfg.sources.map((src) => (
-                  <li key={src}>{src}</li>
-                ))}
-              </ul>
-            </div>
+          <div className="flex flex-wrap items-center gap-2 print:hidden">
+            {cfg.status === 'provisional' && (
+              <span className="rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 text-xs text-warning">
+                Parámetros provisionales
+              </span>
+            )}
+            <PrintButton label="Imprimir" />
           </div>
         </div>
+      </CardHeader>
+
+      <CardContent className="space-y-6 pt-6">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Metric
+            label="Lo que ingresas"
+            value={formatCurrencyExact(s.monthly.bruto)}
+            hint={`${pct}% del IPREM (${formatCurrencyExact(cfg.ipremMonthly)}) · bruto = neto en cuenta`}
+            emphasize
+          />
+          <Metric
+            label="IRPF (SEPE)"
+            value="Sin retención"
+            hint="Tributa en la renta al declarar; el ingreso es íntegro"
+          />
+          <Metric
+            label="Base de cotización"
+            value={formatCurrencyExact(s.monthly.baseCotizacion)}
+            hint={`Anual ${formatCurrencyExact(s.annual.baseCotizacion)} · cotiza el SEPE por ti`}
+            emphasize
+          />
+          <Metric
+            label="Pensión estimada"
+            value={
+              outlook.pension.ordinaryResult
+                ? formatCurrencyExact(outlook.pension.ordinaryResult.monthlyPension)
+                : '—'
+            }
+            hint={`${s.untilRetirement.months} meses en subsidio +52`}
+          />
+        </div>
+
+        <CollapsibleSection title="Comparativa de escenarios" defaultOpen>
+          <CompareRow
+            label={c.tuEscenario.label}
+            value={
+              c.tuEscenario.pensionMensual != null
+                ? formatCurrencyExact(c.tuEscenario.pensionMensual)
+                : '—'
+            }
+          />
+          <CompareRow
+            label={c.sinCotizarMas.label}
+            value={
+              c.sinCotizarMas.pensionMensual != null
+                ? formatCurrencyExact(c.sinCotizarMas.pensionMensual)
+                : '—'
+            }
+          />
+          <CompareRow
+            label={c.simulacionSs.label}
+            value={
+              c.simulacionSs.pensionMensual != null
+                ? formatCurrencyExact(c.simulacionSs.pensionMensual)
+                : '—'
+            }
+            muted
+          />
+          <p className="mt-3 text-xs text-muted-foreground">
+            Δ frente a no cotizar más:{' '}
+            {c.deltas.vsFreeze != null
+              ? `${c.deltas.vsFreeze >= 0 ? '+' : ''}${formatCurrencyExact(c.deltas.vsFreeze)}/mes`
+              : '—'}
+            {' · '}
+            La simulación SS asume empleo continuo (referencia, no tu caso).
+          </p>
+        </CollapsibleSection>
+
+        <CollapsibleSection title="Detalle del cálculo">
+          <dl className="space-y-2.5 text-sm">
+            {informe.steps.map((st) => (
+              <div key={st.id} className="grid gap-0.5 border-b border-border/40 pb-2 last:border-0">
+                <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  {st.label}
+                </dt>
+                <dd className="leading-snug tabular-nums">{st.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </CollapsibleSection>
+
+        <p className="print-footer">
+          PlanMiJubilacion · Subsidio +52 · {new Date().toLocaleString('es-ES')}
+        </p>
       </CardContent>
     </Card>
   );

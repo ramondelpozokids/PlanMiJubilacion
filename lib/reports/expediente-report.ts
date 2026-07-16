@@ -3,6 +3,7 @@
  */
 import type { ExpedienteDigital } from '@/lib/expediente/types';
 import { buildRetirementOutlook } from '@/lib/calculator/retirement-outlook';
+import { evaluateInternationalCoordination } from '@/lib/international-coordination/evaluate';
 
 export interface ExpedienteReportSummary {
   title: string;
@@ -46,11 +47,18 @@ export interface ExpedienteReportSummary {
       simSs: number | null;
     };
   } | null;
+  international: {
+    active: boolean;
+    countries: string[];
+    totalizationPossible: boolean;
+    summaryLines: string[];
+  } | null;
 }
 
 export function buildExpedienteReport(expediente: ExpedienteDigital): ExpedienteReportSummary {
   const outlook = buildRetirementOutlook(expediente);
   const pipe = outlook?.erpPipeline ?? null;
+  const intl = evaluateInternationalCoordination(expediente.internationalCotizaciones);
   return {
     title: 'Informe de expediente digital',
     generatedAt: new Date().toISOString(),
@@ -92,6 +100,14 @@ export function buildExpedienteReport(expediente: ExpedienteDigital): Expediente
             freeze: pipe.comparativa.sinCotizarMas.pensionMensual,
             simSs: pipe.comparativa.simulacionSs.pensionMensual,
           },
+        }
+      : null,
+    international: intl
+      ? {
+          active: true,
+          countries: intl.evaluations.map((e) => e.country.name),
+          totalizationPossible: intl.totalizationPossibleAny,
+          summaryLines: intl.summaryLines,
         }
       : null,
   };

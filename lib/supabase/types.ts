@@ -61,6 +61,7 @@ export interface Database {
           content_hash: string | null;
           processing_attempts: number | null;
           processed_at: string | null;
+          consultation_case_id: string | null;
           created_at: string | null;
           updated_at: string | null;
         };
@@ -79,6 +80,7 @@ export interface Database {
           content_hash?: string | null;
           processing_attempts?: number | null;
           processed_at?: string | null;
+          consultation_case_id?: string | null;
           created_at?: string | null;
           updated_at?: string | null;
         };
@@ -97,6 +99,7 @@ export interface Database {
           content_hash?: string | null;
           processing_attempts?: number | null;
           processed_at?: string | null;
+          consultation_case_id?: string | null;
           created_at?: string | null;
           updated_at?: string | null;
         };
@@ -272,6 +275,50 @@ export interface Database {
           created_at?: string | null;
         };
         Relationships: [];
+      };
+      consultation_cases: {
+        Row: {
+          id: string;
+          founder_id: string;
+          client_name: string;
+          client_note: string | null;
+          expediente_data: Json;
+          life_path: Json;
+          completitud_score: number;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          founder_id: string;
+          client_name: string;
+          client_note?: string | null;
+          expediente_data?: Json;
+          life_path?: Json;
+          completitud_score?: number;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          founder_id?: string;
+          client_name?: string;
+          client_note?: string | null;
+          expediente_data?: Json;
+          life_path?: Json;
+          completitud_score?: number;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'consultation_cases_founder_id_fkey';
+            columns: ['founder_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
       };
     };
     Views: Record<string, never>;

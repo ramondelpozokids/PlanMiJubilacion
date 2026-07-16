@@ -20,7 +20,7 @@ import {
   type OfficialSimulationData,
   type RealPensionQuality,
 } from './real-pension';
-import { DEFAULT_LIFE_PATH, type LifePathAssumptions } from './life-path';
+import { DEFAULT_LIFE_PATH, type LifePathAssumptions, isSubsidio52Active } from './life-path';
 import {
   buildSubsidio52ErpPipeline,
   type Subsidio52ErpPipeline,
@@ -256,7 +256,9 @@ export function buildRetirementOutlook(
       monthsMissingForAge65: resolved.monthsStillNeededFor65,
       monthsProjectedAtRetirement: resolved.monthsAtRetirement,
       assumption: resolved.assumption,
-      explanation: `${resolved.explanation} (con cotización del subsidio +52 desde ${lifePath.subsidioMayores52From}).`,
+      explanation: isSubsidio52Active(lifePath)
+        ? `${resolved.explanation} (con cotización del subsidio +52 desde ${lifePath.subsidioMayores52From}).`
+        : resolved.explanation,
     },
     ordinaryIfFreeze:
       freeze.at65 !== resolved.at65 || freeze.date.getTime() !== resolved.date.getTime()

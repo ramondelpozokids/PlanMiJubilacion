@@ -86,3 +86,62 @@
     transition-duration: 0.01ms !important;
   }
 }
+/* —— Impresión profesional —— */
+@media print {
+  @page {
+    margin: 12mm;
+    size: A4;
+  }
+
+  html, body {
+    background: white !important;
+    color: black !important;
+    font-size: 11pt;
+  }
+
+  .print\:hidden,
+  aside,
+  [data-chat-widget],
+  .no-print {
+    display: none !important;
+  }
+
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .print-root {
+    break-inside: avoid;
+  }
+
+  table {
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  h1, h2, h3 {
+    break-after: avoid;
+  }
+
+  .print-footer {
+    display: block !important;
+    margin-top: 24pt;
+    padding-top: 8pt;
+    border-top: 1px solid #ccc;
+    font-size: 9pt;
+    color: #444;
+  }
+}
+
+.print-footer {
+  display: none;
+}

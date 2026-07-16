@@ -394,6 +394,12 @@ export function normalizeSimulacionJubilacion(
   const source = prov(documentId, documentName, documentType, extraction.confidence);
   const sim = (extraction.informeCompleto.otrosDatos.simulacion as Record<string, unknown>) ?? {};
 
+  /** La simulación SS es solo referencia (pensión/BR), no aporta bases ni periodos reales. */
+  base.bases = [];
+  base.periodos = [];
+  base.prestaciones = [];
+  base.lagunas = [];
+
   const pension = normalizeAmount(
     (sim.pensionMensual as number) ?? extraction.baseMensual ?? null
   );

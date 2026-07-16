@@ -25,7 +25,7 @@ export function ChatWidget() {
   }, [messages]);
 
   return (
-    <>
+    <div className="print:hidden" data-chat-widget>
       {/* FAB */}
       <button
         onClick={() => setOpen(!open)}
@@ -131,6 +131,6 @@ export function ChatWidget() {
           </Button>
         </form>
       </aside>
-    </>
+    </div>
   );
 }

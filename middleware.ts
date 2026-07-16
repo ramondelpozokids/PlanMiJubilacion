@@ -10,6 +10,13 @@ const PROTECTED_PATHS = [
   '/comparator',
   '/calendar',
   '/settings',
+  '/jubilacion',
+  '/prestaciones',
+  '/vida-laboral',
+  '/futuro',
+  '/asesoria',
+  '/revision-internacional',
+  '/informes',
 ];
 
 export async function middleware(request: NextRequest) {

@@ -250,7 +250,7 @@ export function MiopFreeSimulator({
               <div className="text-xs text-muted-foreground space-y-1">
                 <p>
                   {sweep.strategiesEvaluated}/{sweep.strategiesGenerated} evaluadas ·{' '}
-                  {(sweep.elapsedMs / 1000).toFixed(1)} s · {sweep.economicFingerprint}
+                  {(sweep.elapsedMs / 1000).toFixed(1)} s
                 </p>
                 <ol className="list-decimal pl-4 space-y-1 text-foreground">
                   {sweep.podium.map((p) => (

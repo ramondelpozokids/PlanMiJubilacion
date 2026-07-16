@@ -70,4 +70,4 @@ export { generateMiopStrategies, strategyFromFreeKnobs } from './generate';
 export { evaluateBatch } from './evaluate-batch';
 export { scoreOutcomes } from './score';
 export { buildMiopConclusions } from './conclusions';
-export type { MiopRunResult, MiopStrategy, ScoredStrategy, MiopSweepMode } from './types';
+export type { MiopRunResult, MiopStrategy, ScoredStrategy, MiopSweepMode, MiopPath } from './types';

@@ -13,11 +13,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const accessLabel = hasUnlimitedAccess(profile)
     ? getAccessLabel(profile)
     : undefined;
+  const isFounder = hasUnlimitedAccess(profile);
 
   return (
     <div className="min-h-screen flex">
-      <AppSidebar accessLabel={accessLabel} />
-      <main id="main" className="flex-1 p-6 md:p-10 max-w-6xl">
+      <AppSidebar accessLabel={accessLabel} isFounder={isFounder} />
+      <main id="main" className="flex-1 p-6 md:p-10 max-w-7xl w-full">
         {children}
       </main>
       <ChatWidget />

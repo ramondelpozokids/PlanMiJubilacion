@@ -9,6 +9,7 @@ import { DEFAULT_LIFE_PATH } from '@/lib/calculator/life-path';
 import { deriveSubsidio52Amounts, getSubsidio52Config } from '@/lib/rules/subsidio-52';
 import { formatCurrency } from '@/lib/utils';
 import { MiopFreeSimulator } from '@/components/features/miop-free-simulator';
+import { ReportToolbar } from '@/components/features/print-button';
 
 export const metadata = { title: 'MIOP — Mejor estrategia', robots: { index: false } };
 
@@ -47,19 +48,15 @@ export default async function MiopPage() {
       : format(new Date(2032, 7, 2), 'yyyy-MM-dd');
 
   return (
-    <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight">¿Qué tienes que hacer?</h1>
-        <p className="text-muted-foreground mt-2 max-w-2xl">
-          Barrido estándar: {miop.strategiesEvaluated} estrategias · modo {miop.mode} ·{' '}
-          {(miop.elapsedMs / 1000).toFixed(2)} s. Para miles de combinaciones usa el barrido denso
-          abajo.
-        </p>
-        <p className="text-xs text-muted-foreground mt-1">
-          Motor económico {miop.economicFingerprint} ·{' '}
-          {new Date(miop.generatedAt).toLocaleString('es-ES')}
-        </p>
-      </header>
+    <div className="space-y-8 print-root">
+      <ReportToolbar
+        title="¿Qué tienes que hacer?"
+        subtitle={`Barrido estándar: ${miop.strategiesEvaluated} estrategias · modo ${miop.mode} · ${(miop.elapsedMs / 1000).toFixed(2)} s. Para miles de combinaciones usa el barrido denso abajo.`}
+      />
+      <p className="text-xs text-muted-foreground -mt-4">
+        {miop.strategiesEvaluated} estrategias evaluadas ·{' '}
+        {new Date(miop.generatedAt).toLocaleString('es-ES')}
+      </p>
 
       <div className="grid gap-4 md:grid-cols-3">
         {miop.podium.map((s, idx) => (

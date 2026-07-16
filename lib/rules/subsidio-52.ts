@@ -13,6 +13,8 @@ export interface Subsidio52RawParams {
   smi?: number;
   baseMinima?: number;
   subsidio52?: number;
+  /** Importe mensual oficial (12 pagas). Si existe, sustituye IPREM × %. */
+  importeMensual?: number;
   cotizacion52?: number;
   irpfDefecto?: number;
 }
@@ -22,6 +24,8 @@ export interface Subsidio52YearConfig {
   status: LegalStatus;
   ipremMonthly: number;
   subsidioPercentOfIprem: number;
+  /** Importe mensual fijado en JSON (p. ej. 480 €). */
+  subsidioMensualFijo: number | null;
   baseMinimaRegimenGeneral: number;
   cotizacionPercentOfMinima: number;
   irpfRetentionRate: number;
@@ -89,21 +93,27 @@ export function resolveRawParams(year: number): {
 
 function toConfig(
   year: number,
-  raw: Required<Subsidio52RawParams>,
+  raw: Required<Subsidio52RawParams> & { importeMensual?: number | undefined },
   status: LegalStatus,
   inheritedFrom: number | null
 ): Subsidio52YearConfig {
-  const bruto = round2(raw.iprem * raw.subsidio52);
+  const bruto =
+    raw.importeMensual != null
+      ? round2(raw.importeMensual)
+      : round2(raw.iprem * raw.subsidio52);
   const notes =
     inheritedFrom != null
-      ? `${year}: ficha vacía → hereda ${inheritedFrom}. Bruto ${bruto} € · base cotización ${raw.baseMinima} €.`
-      : `${year}: IPREM ${raw.iprem} × ${raw.subsidio52} = ${bruto} €. Base cotización (JSON baseMinima) = ${raw.baseMinima} € · coef. legal ${raw.cotizacion52}.`;
+      ? `${year}: ficha vacía → hereda ${inheritedFrom}. Subsidio ${bruto} €/mes · base cotización ${raw.baseMinima} €.`
+      : raw.importeMensual != null
+        ? `${year}: ${bruto} €/mes (80% IPREM, 12 pagas). SEPE no retiene IRPF. Base cotización ${raw.baseMinima} €.`
+        : `${year}: IPREM ${raw.iprem} × ${raw.subsidio52} = ${bruto} €. Base cotización ${raw.baseMinima} €.`;
 
   return {
     year,
     status,
     ipremMonthly: raw.iprem,
     subsidioPercentOfIprem: raw.subsidio52,
+    subsidioMensualFijo: raw.importeMensual ?? null,
     baseMinimaRegimenGeneral: raw.baseMinima,
     cotizacionPercentOfMinima: raw.cotizacion52,
     irpfRetentionRate: raw.irpfDefecto,
@@ -119,7 +129,12 @@ function toConfig(
 
 export function getSubsidio52Config(year: number): Subsidio52YearConfig {
   const { raw, inheritedFrom, status } = resolveRawParams(year);
-  return toConfig(year, raw, status, inheritedFrom);
+  const map = yearParamsMap();
+  const sourceYear = inheritedFrom ?? year;
+  const importeMensual = map[String(sourceYear)]?.importeMensual;
+  const rawWithImporte =
+    importeMensual != null ? { ...raw, importeMensual } : raw;
+  return toConfig(year, rawWithImporte, status, inheritedFrom);
 }
 
 export function latestSubsidio52Year(): number {
@@ -127,9 +142,14 @@ export function latestSubsidio52Year(): number {
 }
 
 export function deriveSubsidio52Amounts(cfg: Subsidio52YearConfig) {
-  const subsidioBruto = round2(cfg.ipremMonthly * cfg.subsidioPercentOfIprem);
+  const subsidioBruto =
+    cfg.subsidioMensualFijo != null
+      ? round2(cfg.subsidioMensualFijo)
+      : round2(cfg.ipremMonthly * cfg.subsidioPercentOfIprem);
   const irpfMonthly = round2(subsidioBruto * cfg.irpfRetentionRate);
-  const subsidioNeto = round2(subsidioBruto - irpfMonthly);
+  /** SEPE no practica retención: lo que ingresa es el bruto (480 €). */
+  const subsidioNeto =
+    cfg.irpfRetentionRate === 0 ? subsidioBruto : round2(subsidioBruto - irpfMonthly);
   const baseCotizacion = round2(cfg.baseMinimaRegimenGeneral);
   const rentLimitMonthly = round2(cfg.smiMonthly14 * cfg.rentLimitPercentOfSmi);
 

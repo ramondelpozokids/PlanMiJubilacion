@@ -17,6 +17,33 @@ En **SQL Editor** → **New query**, pega y ejecuta en orden:
 2. `migrations/002_storage.sql` — bucket `documents`
 3. `migrations/003_documents_update_policy.sql` — **permite actualizar estado OCR** (sin esto quedan en "processing")
 4. `migrations/004_expediente.sql` — tabla **expedientes** (expediente digital unificado)
+5. `migrations/005_documents_queue.sql` — cola OCR e idempotencia por hash
+6. `migrations/006_consultation_cases.sql` — **asesoría fundador** (consultas de terceros)
+7. `migrations/007_consultation_life_path.sql` — escenario vital por consulta (si ya ejecutaste 006 antes)
+8. `migrations/008_billing_international.sql` — precios configurables, pedidos y facturas/recibos
+9. `migrations/009_billing_issue_policies.sql` — emisión de documentos + numeración FAC/REC/INF
+
+### Opción A — CLI (recomendado)
+
+1. Añade en `.env.local` la contraseña de la base de datos:
+
+```env
+SUPABASE_DB_PASSWORD=tu_password_de_supabase
+```
+
+(La encuentras en **Project Settings → Database → Database password**.)
+
+2. Aplica todas las migraciones pendientes:
+
+```bash
+npm run db:push
+```
+
+Esto sube `supabase/migrations/*.sql` al proyecto remoto (incluida la **007** con `life_path`).
+
+### Opción B — SQL Editor manual
+
+Si prefieres pegar SQL a mano, ejecuta solo las migraciones que aún no tengas (p. ej. `007_consultation_life_path.sql` si ya corriste la 006).
 
 ## 3. Auth — crear tus usuarios admin
 

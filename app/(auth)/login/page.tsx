@@ -19,7 +19,7 @@ export default function LoginPage({
     <main className="min-h-screen grid place-items-center p-6">
       <Card className="w-full max-w-[420px] p-10">
         <div className="flex justify-center mb-6">
-          <Logo />
+          <Logo priority size="xl" />
         </div>
         {configError && (
           <div className="mb-6 rounded-lg border border-warning/40 bg-warning/10 p-4 text-sm">
@@ -101,8 +101,9 @@ export default function LoginPage({
         </p>
         <p className="text-center text-xs mt-4 text-muted-foreground">
           Al continuar aceptas nuestros{' '}
-          <a href="/legal/terms" className="underline">términos</a> y{' '}
-          <a href="/legal/privacy" className="underline">política de privacidad</a>.
+          <a href="/legal/terms" className="underline">términos</a>,{' '}
+          <a href="/legal/privacy" className="underline">política de privacidad</a> y{' '}
+          <a href="/legal/aviso-legal" className="underline">aviso legal</a>.
         </p>
       </Card>
     </main>

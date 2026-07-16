@@ -14,6 +14,7 @@ export const DOCUMENT_TYPES = {
   incapacidad_permanente: 'Incapacidad Permanente',
   vida_laboral_internacional: 'Vida laboral internacional',
   certificado_europeo: 'Certificado de cotización europeo',
+  pension_extranjera: 'Pensión / carta extranjera (importe oficial)',
   declaracion_fiscal: 'Declaración fiscal',
   otro: 'Otro documento SS',
 } as const;
@@ -52,8 +53,15 @@ export function detectDocumentTypeFromText(
   if (/convenio especial/i.test(lower)) return 'convenio_especial';
   if (/incapacidad temporal|baja m[eé]dica/i.test(lower)) return 'incapacidad_temporal';
   if (/incapacidad permanente/i.test(lower)) return 'incapacidad_permanente';
-  if (/regulation \(eu\)|certificado europeo|formulario e/i.test(lower))
+  if (/regulation \(eu\)|certificado europeo|formulario e|pd p1|e205/i.test(lower))
     return 'certificado_europeo';
+  if (
+    /deutsche rentenversicherung|pension.*abroad|pensión.*extranj|foreign pension|rentenbescheid|pensionsbescheid/i.test(
+      lower
+    )
+  ) {
+    return 'pension_extranjera';
+  }
   if (/declaraci[oó]n.*irpf|modelo 100|modelo 130/i.test(lower)) return 'declaracion_fiscal';
 
   return 'otro';

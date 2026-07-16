@@ -4,6 +4,7 @@
  */
 
 import type { DocumentTypeKey } from './document-types';
+import type { InternationalCotizacionesData } from '@/lib/international-coordination/types';
 
 export interface FieldProvenance {
   documentId: string;
@@ -140,6 +141,8 @@ export interface ExpedienteDigital {
     opportunities: string[];
     updatedAt: string;
   };
+  /** Cotizaciones en el extranjero (declaradas por el usuario). */
+  internationalCotizaciones?: InternationalCotizacionesData;
   updatedAt: string;
 }
 

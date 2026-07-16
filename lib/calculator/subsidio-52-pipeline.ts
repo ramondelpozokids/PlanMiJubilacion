@@ -1,7 +1,7 @@
 /**
  * Pipeline ERP subsidio +52 (cadena innegociable):
  *
- *   IPREM × 95% → bruto → neto → base cotización → impacto jubilación → comparativa → informe
+ *   IPREM × 80% → bruto (= neto en cuenta) → base cotización → impacto → comparativa → informe
  *
  * Las bases anuales viven en `lib/rules/subsidio-52-params.json`.
  * Cambias un año (p.ej. 2028) → en el siguiente `buildRetirementOutlook` / `recalculate`
@@ -187,7 +187,7 @@ export function buildSubsidio52ErpPipeline(options: {
       {
         id: 'neto',
         label: 'Subsidio neto',
-        value: `${fmt(amounts.subsidioNeto)} (IRPF ${(cfg.irpfRetentionRate * 100).toFixed(0)}%)`,
+        value: `${fmt(amounts.subsidioNeto)} · sin retención SEPE (declaras en renta)`,
       },
       {
         id: 'baseCotizacion',
@@ -206,20 +206,26 @@ export function buildSubsidio52ErpPipeline(options: {
         id: 'comparativa',
         label: 'Comparativa',
         value: [
-          comparativa.deltas.vsFreeze != null
-            ? `vs freeze ${comparativa.deltas.vsFreeze >= 0 ? '+' : ''}${fmt(comparativa.deltas.vsFreeze)}`
-            : 'vs freeze —',
-          comparativa.deltas.vsSimSs != null
-            ? `vs sim SS ${comparativa.deltas.vsSimSs >= 0 ? '+' : ''}${fmt(comparativa.deltas.vsSimSs)}`
-            : 'vs sim SS —',
-        ].join(' · '),
+          options.pensionWithPath != null
+            ? `Tu escenario (desempleo → subsidio +52): ${fmt(options.pensionWithPath)}/mes`
+            : 'Tu escenario: pendiente de bases documentadas',
+          freezeSnap.ordinaryMonthly != null
+            ? `Si dejas de cotizar: ${fmt(freezeSnap.ordinaryMonthly)}/mes`
+            : null,
+          sim?.pensionMensual != null
+            ? `Simulación SS (empleo continuo, solo referencia): ${fmt(sim.pensionMensual)}/mes`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(' · '),
       },
       {
         id: 'informe',
-        label: 'Informe',
-        value: `Años JSON ${yearsDeclaredInParams().join(', ')} · fp ${fp}${
-          resolved.inheritedFrom != null ? ` · hereda ${resolved.inheritedFrom}` : ''
-        }`,
+        label: 'Resumen',
+        value:
+          resolved.inheritedFrom != null
+            ? `Importes legales de ${resolved.inheritedFrom} (aún no hay ficha publicada para ${startYear}). Cobras ${fmt(amounts.subsidioBruto)}/mes en 12 pagas; el SEPE no retiene IRPF. Cotiza por ti sobre ${fmt(amounts.baseCotizacion)}/mes.`
+            : `Importes legales de ${startYear}: subsidio ${fmt(amounts.subsidioBruto)}/mes (12 pagas, sin retención SEPE) y base de cotización ${fmt(amounts.baseCotizacion)}/mes.`,
       },
     ],
     yearsInParams: yearsDeclaredInParams(),

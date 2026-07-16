@@ -4,15 +4,29 @@ import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-export function RetirementOutlookCard({ outlook }: { outlook: RetirementOutlook }) {
+export function RetirementOutlookCard({
+  outlook,
+  variant = 'self',
+  clientName,
+}: {
+  outlook: RetirementOutlook;
+  variant?: 'self' | 'consultation';
+  clientName?: string;
+}) {
   const p = outlook.pension.ordinaryResult;
   const sim = outlook.pension.officialSimReference;
   const path = outlook.pension.lifePath;
+  const who = variant === 'consultation' ? clientName ?? 'Esta persona' : 'Tú';
+  const possessive = variant === 'consultation' ? 'su' : 'tu';
 
   return (
     <Card className="border-2 border-foreground/15">
       <CardHeader>
-        <CardTitle className="text-lg">Cuándo y cómo puedes jubilarte</CardTitle>
+        <CardTitle className="text-lg">
+          {variant === 'consultation'
+            ? `Cuándo y cómo puede jubilarse ${clientName ?? ''}`.trim()
+            : 'Cuándo y cómo puedes jubilarte'}
+        </CardTitle>
         <p className="text-sm text-muted-foreground font-normal">
           Cálculo con reglas SS {new Date().getFullYear()} · {outlook.ageTodayLabel} hoy ·{' '}
           {outlook.carrera.years} años y {outlook.carrera.months} meses cotizados
@@ -68,7 +82,7 @@ export function RetirementOutlookCard({ outlook }: { outlook: RetirementOutlook 
 
           <div className="rounded-md border bg-muted/30 p-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Pensión (tu escenario)
+              Pensión ({possessive} escenario)
             </p>
             {p ? (
               <>
@@ -100,12 +114,14 @@ export function RetirementOutlookCard({ outlook }: { outlook: RetirementOutlook 
 
         {sim && (
           <div className="rounded-md border border-dashed p-3 text-sm">
-            <p className="font-medium">Referencia SS (no es tu escenario)</p>
+            <p className="font-medium">Referencia SS (no es {possessive} escenario real)</p>
             <p className="text-muted-foreground mt-1">
               Simulación oficial {formatCurrency(sim.pensionMensual)}/mes
               {sim.fechaJubilacion ? ` · ${sim.fechaJubilacion}` : ''} — hipótesis de empleo
-              continuo. Tú estás desempleado y desde {path.subsidioMayores52From} cobrarás
-              solo el subsidio mayores de 52 (base de cotización baja).
+              continuo.
+              {path.subsidioMayores52From.startsWith('2099')
+                ? ` ${who} no tiene activado subsidio +52 en el escenario.`
+                : ` Desde ${path.subsidioMayores52From} se ha modelado subsidio mayores de 52.`}
             </p>
           </div>
         )}
@@ -113,7 +129,7 @@ export function RetirementOutlookCard({ outlook }: { outlook: RetirementOutlook 
         {outlook.earlyVoluntary.scenarios.length > 0 && (
           <div>
             <h3 className="text-sm font-medium mb-2">
-              Si te jubilas antes: % que te quitan (coeficientes reductores)
+              Si se jubila antes: % que le quitan (coeficientes reductores)
             </h3>
             <div className="overflow-x-auto">
               <table className="w-full text-sm min-w-[640px]">

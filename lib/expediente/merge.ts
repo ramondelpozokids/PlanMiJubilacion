@@ -82,6 +82,25 @@ function mergeSourcedScalar<T>(
   return incomingConf >= existingConf ? incoming : existing;
 }
 
+function documentTypePriority(documentType: string | undefined): number {
+  switch (documentType) {
+    case 'bases_cotizacion':
+      return 4;
+    case 'vida_laboral':
+      return 3;
+    case 'nomina':
+      return 2;
+    case 'simulacion_jubilacion':
+      return 0;
+    default:
+      return 1;
+  }
+}
+
+function maxSourcePriority(sources: FieldProvenance[]): number {
+  return sources.reduce((max, s) => Math.max(max, documentTypePriority(s.documentType)), 0);
+}
+
 function mergeIdentificacion(
   exp: ExpedienteDigital,
   payload: NormalizedDocumentPayload,
@@ -289,12 +308,23 @@ export function mergeDocumentIntoExpediente(
     const idx = expediente.bases.findIndex(
       (e) => (e.periodo?.value ?? '').toLowerCase() === periodKey && periodKey !== ''
     );
-    if (idx === -1) expediente.bases.push(b);
-    else {
+    const incomingPriority = documentTypePriority(payload.documentType);
+    if (idx === -1) {
+      if (incomingPriority > 0) expediente.bases.push(b);
+      continue;
+    }
+    const existing = expediente.bases[idx];
+    const existingPriority = maxSourcePriority(existing.sources);
+    if (incomingPriority >= existingPriority) {
       expediente.bases[idx] = {
         ...b,
-        id: expediente.bases[idx].id,
-        sources: [...expediente.bases[idx].sources, ...b.sources],
+        id: existing.id,
+        sources: [...existing.sources, ...b.sources],
+      };
+    } else {
+      expediente.bases[idx] = {
+        ...existing,
+        sources: [...existing.sources, ...b.sources],
       };
     }
   }
@@ -313,8 +343,18 @@ export function mergeDocumentIntoExpediente(
   return expediente;
 }
 
+/** Quita bases que solo vienen de la simulación SS (no son cotización real). */
+export function stripSimulationOnlyBases(expediente: ExpedienteDigital): void {
+  expediente.bases = expediente.bases.filter((b) => {
+    const types = b.sources.map((s) => s.documentType);
+    if (types.length === 0) return true;
+    return types.some((t) => t && t !== 'simulacion_jubilacion');
+  });
+}
+
 /** Deja el expediente anclado al presente real (sin proyecciones futuras). */
 export function pruneExpedienteToToday(expediente: ExpedienteDigital): void {
+  stripSimulationOnlyBases(expediente);
   expediente.bases = expediente.bases.filter((b) =>
     isContributionMonthOnOrBeforeToday(b.periodo?.value ?? null)
   );

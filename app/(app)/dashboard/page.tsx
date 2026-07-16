@@ -7,8 +7,11 @@ import { expedienteDataStats } from '@/lib/calculator/from-expediente';
 import type { ExpedienteDigital } from '@/lib/expediente/types';
 import { formatCurrency } from '@/lib/utils';
 import { buildRetirementOutlook } from '@/lib/calculator/retirement-outlook';
+import { PlanMiSuite } from '@/components/features/planmi-suite';
+import { ReportToolbar } from '@/components/features/print-button';
+import { PLANMI_BRAND } from '@/lib/planmi/products';
 
-export const metadata = { title: 'Dashboard', robots: { index: false } };
+export const metadata = { title: 'Inicio', robots: { index: false } };
 
 export default async function DashboardPage() {
   const profile = await getProfile();
@@ -32,110 +35,175 @@ export default async function DashboardPage() {
       d.document_type === 'bases' ||
       /bases/i.test(d.name ?? '')
   );
-  const basesMissingDespiteDoc =
-    hasBasesDoc && (stats?.basesDocumentadas ?? 0) === 0;
+  const basesMissingDespiteDoc = hasBasesDoc && (stats?.basesDocumentadas ?? 0) === 0;
   const outlook = exp ? buildRetirementOutlook(exp) : null;
+  const firstName =
+    exp?.identificacion.nombre?.value?.split(' ')[0] ??
+    profile?.full_name?.split(' ')[0] ??
+    'usuario';
+
+  const suiteMetrics = {
+    jubilacion: {
+      primary: outlook?.pension.ordinaryResult
+        ? formatCurrency(outlook.pension.ordinaryResult.monthlyPension)
+        : '—',
+      secondary: outlook
+        ? `Ordinaria ${outlook.ordinary.dateLabel}`
+        : 'Sube vida laboral + bases',
+    },
+    prestaciones: {
+      primary: String(exp?.prestaciones.length ?? 0),
+      secondary: `${exp?.resoluciones.length ?? 0} certificados / resoluciones`,
+    },
+    'vida-laboral': {
+      primary:
+        exp?.resumen.anosCotizados?.value != null
+          ? `${exp.resumen.anosCotizados.value} años`
+          : '—',
+      secondary:
+        stats?.basesDocumentadas != null
+          ? `${stats.basesDocumentadas} bases documentadas`
+          : 'Sin historial aún',
+    },
+    futuro: {
+      primary: 'MIOP',
+      secondary: 'Optimización de pensión y escenario vital',
+    },
+  };
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Hola,{' '}
-          {exp?.identificacion.nombre?.value?.split(' ')[0] ??
-            profile?.full_name?.split(' ')[0] ??
-            'usuario'}
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Expediente documental · {exp?.completitud.score ?? 0}% completitud · {docCount ?? 0}{' '}
-          documento(s)
-        </p>
-        <p className="text-xs text-muted-foreground mt-1">
-          Actualiza de vez en cuando vida laboral + bases para mantenerlo en el presente real.
-        </p>
-      </header>
+    <div className="space-y-8 print-root max-w-7xl">
+      <ReportToolbar
+        title={`Hola, ${firstName}`}
+        subtitle={`PlanMiFuturo · plataforma integral · expediente ${exp?.completitud.score ?? 0}% · ${docCount ?? 0} documento(s)`}
+      />
+
+      <section className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-accent/10 via-background to-success/5 p-6 sm:p-8">
+        <div
+          className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-accent/20 blur-3xl motion-reduce:hidden"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -bottom-24 left-10 h-48 w-48 rounded-full bg-success/15 blur-3xl motion-reduce:hidden"
+          aria-hidden
+        />
+        <div className="relative max-w-2xl space-y-3">
+          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+            {PLANMI_BRAND}
+          </p>
+          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">
+            PlanMiFuturo
+          </h2>
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+            Cuatro productos sobre el mismo expediente digital: jubilación, prestaciones, vida
+            laboral y visión integral. Elige por dónde seguir.
+          </p>
+          <div className="flex flex-wrap gap-2 pt-1 print:hidden">
+            <Link href="/analysis">
+              <Button size="sm">Ver expediente</Button>
+            </Link>
+            <Link href="/upload">
+              <Button size="sm" variant="secondary">
+                Subir documentos
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-end justify-between gap-3">
+          <h2 className="text-lg font-semibold tracking-tight">Tus productos</h2>
+          <p className="text-xs text-muted-foreground print:hidden">Actualiza vida laboral + bases</p>
+        </div>
+        <PlanMiSuite metrics={suiteMetrics} />
+      </section>
 
       {outlook && (
-        <Card className="border-2 border-foreground/15">
-          <CardHeader>
-            <CardTitle className="text-base">Jubilación (cálculo)</CardTitle>
+        <Card className="border-foreground/15">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Snapshot jubilación</CardTitle>
           </CardHeader>
-          <CardContent className="grid md:grid-cols-3 gap-4 text-sm">
+          <CardContent className="grid gap-4 sm:grid-cols-3 text-sm">
             <div>
               <p className="text-muted-foreground">Ordinaria</p>
-              <p className="text-xl font-semibold mt-1">{outlook.ordinary.dateLabel}</p>
-              <p className="text-muted-foreground text-xs mt-1">{outlook.ordinary.ageLabel}</p>
+              <p className="mt-1 text-xl font-semibold">{outlook.ordinary.dateLabel}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{outlook.ordinary.ageLabel}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Si anticipas a los 63</p>
-              <p className="text-xl font-semibold mt-1 text-warning">
+              <p className="mt-1 text-xl font-semibold text-warning">
                 {outlook.earlyVoluntary.scenarios[0]
                   ? `−${outlook.earlyVoluntary.scenarios[0].reductionPercent}%`
                   : '—'}
               </p>
-              <p className="text-muted-foreground text-xs mt-1">coeficientes reductores</p>
+              <p className="mt-1 text-xs text-muted-foreground">coeficientes reductores</p>
             </div>
             <div>
               <p className="text-muted-foreground">Pensión est. ordinaria</p>
-              <p className="text-xl font-semibold mt-1">
+              <p className="mt-1 text-xl font-semibold">
                 {outlook.pension.ordinaryResult
                   ? formatCurrency(outlook.pension.ordinaryResult.monthlyPension)
                   : '—'}
               </p>
-              <Link href="/analysis" className="text-xs text-accent underline mt-1 inline-block">
-                Ver detalle completo
+              <Link
+                href="/jubilacion"
+                className="mt-1 inline-block text-xs text-accent underline print:hidden"
+              >
+                Abrir PlanMiJubilacion
               </Link>
             </div>
           </CardContent>
         </Card>
       )}
 
-      <div className="grid md:grid-cols-3 gap-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Años cotizados (documentados)</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Años cotizados</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-semibold">
+            <div className="text-3xl font-semibold tabular-nums">
               {exp?.resumen.anosCotizados?.value ?? '—'}
             </div>
             {exp?.resumen.mesesCotizados?.value != null && (
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="mt-1 text-sm text-muted-foreground">
                 + {exp.resumen.mesesCotizados.value} meses
               </p>
             )}
           </CardContent>
         </Card>
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-2">
             <CardTitle className="text-base">Bases documentadas</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-semibold">{stats?.basesDocumentadas ?? 0}</div>
-            <p className="text-sm text-muted-foreground mt-1">
+            <div className="text-3xl font-semibold tabular-nums">
+              {stats?.basesDocumentadas ?? 0}
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
               {stats?.primeraBase && stats?.ultimaBase
                 ? `${stats.primeraBase} → ${stats.ultimaBase}`
                 : basesMissingDespiteDoc
-                  ? 'PDF de bases subido, pero sin meses extraídos'
+                  ? 'PDF de bases subido, sin meses extraídos'
                   : 'Sin bases aún'}
             </p>
             {basesMissingDespiteDoc && (
-              <p className="text-xs text-warning mt-2">
-                Ve a Análisis → Releer el informe de bases (usa http://localhost:3000).
+              <p className="mt-2 text-xs text-warning">
+                En Documentos → Releer el informe de bases.
               </p>
             )}
           </CardContent>
         </Card>
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-2">
             <CardTitle className="text-base">Última base conocida</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-semibold">
+            <div className="text-3xl font-semibold tabular-nums">
               {baseActual != null ? formatCurrency(baseActual) : '—'}
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Solo dato real del documento — no extrapolada
-            </p>
+            <p className="mt-1 text-sm text-muted-foreground">Dato real del documento</p>
           </CardContent>
         </Card>
       </div>
@@ -145,12 +213,12 @@ export default async function DashboardPage() {
           <CardHeader>
             <CardTitle className="text-base">Resumen documental IA</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm space-y-3">
+          <CardContent className="space-y-3 text-sm">
             <p>{exp.advisor.summary}</p>
             {exp.advisor.risks.length > 0 && (
               <div>
                 <p className="font-medium text-warning">Alertas documentales</p>
-                <ul className="list-disc pl-5 mt-1">
+                <ul className="mt-1 list-disc pl-5">
                   {exp.advisor.risks.map((r, i) => (
                     <li key={i}>{r}</li>
                   ))}
@@ -160,7 +228,7 @@ export default async function DashboardPage() {
             {exp.advisor.opportunities.length > 0 && (
               <div>
                 <p className="font-medium">Siguiente paso</p>
-                <ul className="list-disc pl-5 mt-1">
+                <ul className="mt-1 list-disc pl-5">
                   {exp.advisor.opportunities.map((o, i) => (
                     <li key={i}>{o}</li>
                   ))}
@@ -187,25 +255,9 @@ export default async function DashboardPage() {
         </Card>
       )}
 
-      <Card className="border-accent/30">
-        <CardHeader>
-          <CardTitle>Tu información está en el expediente</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Periodos, bases, paro, certificados y discrepancias — todo fusionado. No abras PDF a
-            PDF: entra al expediente.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <Link href="/analysis">
-              <Button>Ver todo el expediente</Button>
-            </Link>
-            <Link href="/upload">
-              <Button variant="secondary">Subir documentos</Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+      <p className="print-footer">
+        PlanMiFuturo · Dashboard · {new Date().toLocaleString('es-ES')}
+      </p>
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { RetirementDateCalendar } from '@/components/features/retirement-date-ca
 import type { ScenarioRow } from '@/components/features/scenario-simulator';
 import { deriveSubsidio52Amounts, getSubsidio52Config } from '@/lib/rules/subsidio-52';
 import { addYears, format } from 'date-fns';
+import { ReportToolbar } from '@/components/features/print-button';
 
 export const metadata = { title: 'Simulador', robots: { index: false } };
 
@@ -43,14 +44,11 @@ export default async function ComparatorPage() {
   const defaultRetirementDate = format(ordinaryDate, 'yyyy-MM-dd');
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight">Simulador de jubilación</h1>
-        <p className="text-muted-foreground mt-2 max-w-2xl">
-          Presente = informe de bases. Futuro = desempleo → subsidio mayores de 52 (base baja).
-          La simulación SS (empleo continuo) es solo referencia.
-        </p>
-      </header>
+    <div className="space-y-6 print-root">
+      <ReportToolbar
+        title="Simulador de jubilación"
+        subtitle="Presente = informe de bases. Futuro = desempleo → subsidio mayores de 52. La simulación SS es solo referencia."
+      />
 
       {outlook && <RetirementOutlookCard outlook={outlook} />}
       {outlook && <Subsidio52Card outlook={outlook} />}
