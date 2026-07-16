@@ -45,6 +45,7 @@ export default function MapaDelSitioPage() {
         title="Público"
         items={[
           { href: '/', label: 'Inicio', note: 'Portada del Ecosistema PlanMi' },
+          { href: '/contacto', label: 'Contacto', note: 'Formulario y documentos cifrados' },
           { href: '/login', label: 'Iniciar sesión / Registrarse' },
         ]}
       />

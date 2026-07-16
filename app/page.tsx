@@ -89,6 +89,9 @@ export default async function HomePage() {
               </Link>
             ) : (
               <>
+                <Link href="/contacto">
+                  <Button variant="ghost">Contacto</Button>
+                </Link>
                 <Link href="/login">
                   <Button variant="ghost">Iniciar sesión</Button>
                 </Link>

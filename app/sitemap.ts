@@ -9,6 +9,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const paths: { path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[0]['changeFrequency'] }[] =
     [
       { path: '/', priority: 1, changeFrequency: 'weekly' },
+      { path: '/contacto', priority: 0.8, changeFrequency: 'monthly' },
       { path: '/legal/aviso-legal', priority: 0.4, changeFrequency: 'monthly' },
       { path: '/legal/privacy', priority: 0.5, changeFrequency: 'monthly' },
       { path: '/legal/terms', priority: 0.4, changeFrequency: 'monthly' },

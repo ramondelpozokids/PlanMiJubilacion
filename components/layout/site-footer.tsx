@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
-const LEGAL_LINKS = [
+const NAV_LINKS = [
+  { href: '/contacto', label: 'Contacto' },
   { href: '/legal/aviso-legal', label: 'Aviso legal' },
   { href: '/legal/privacy', label: 'Privacidad' },
   { href: '/legal/terms', label: 'Términos' },
@@ -20,8 +21,8 @@ export function SiteFooter({ className }: { className?: string }) {
             Creador y fundador: <span className="text-foreground/80">Ramón del Pozo Rott</span>
           </p>
         </div>
-        <nav aria-label="Enlaces legales" className="flex flex-wrap gap-x-4 gap-y-2">
-          {LEGAL_LINKS.map((l) => (
+        <nav aria-label="Enlaces del sitio" className="flex flex-wrap gap-x-4 gap-y-2">
+          {NAV_LINKS.map((l) => (
             <Link key={l.href} href={l.href} className="hover:text-foreground">
               {l.label}
             </Link>
@@ -33,7 +34,7 @@ export function SiteFooter({ className }: { className?: string }) {
 }
 
 export function LegalSeeAlso({ current }: { current?: string }) {
-  const links = LEGAL_LINKS.filter((l) => l.href !== current);
+  const links = NAV_LINKS.filter((l) => l.href !== current);
   return (
     <p className="not-prose text-sm text-muted-foreground mt-10 pt-6 border-t">
       Ver también:{' '}

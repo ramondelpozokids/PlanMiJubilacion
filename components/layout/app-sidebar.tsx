@@ -87,7 +87,10 @@ export function AppSidebar({
           </p>
           <div className="space-y-1">
             {isFounder && (
-              <NavLink href="/asesoria" label="Asesoría (gratis)" pathname={pathname} />
+              <>
+                <NavLink href="/asesoria" label="Asesoría (gratis)" pathname={pathname} />
+                <NavLink href="/asesoria/mensajes" label="Bandeja contacto" pathname={pathname} />
+              </>
             )}
             {TOOL_ITEMS.map((item) => (
               <NavLink key={item.href} {...item} pathname={pathname} />

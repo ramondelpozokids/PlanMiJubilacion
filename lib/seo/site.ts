@@ -1,10 +1,16 @@
 /**
  * URL canónica del sitio (SEO, sitemap, robots, OG).
- * En Vercel: NEXT_PUBLIC_APP_URL = https://tu-proyecto.vercel.app
- * En producción con dominio: https://planmijubilacion.es
+ * Prioridad: NEXT_PUBLIC_APP_URL → VERCEL_URL → dominio .es
  */
 export function getSiteUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, '');
+  if (fromEnv && /^https?:\/\//i.test(fromEnv) && !fromEnv.includes('localhost')) {
+    return fromEnv;
+  }
+  const vercel = process.env.VERCEL_URL?.trim();
+  if (vercel) {
+    return `https://${vercel.replace(/^https?:\/\//i, '')}`;
+  }
   if (fromEnv && /^https?:\/\//i.test(fromEnv)) return fromEnv;
   return 'https://planmijubilacion.es';
 }
