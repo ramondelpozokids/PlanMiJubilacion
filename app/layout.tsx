@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { Toaster } from 'sonner';
 import { CSPostHogProvider } from '@/components/providers/posthog-provider';
+import { getSiteUrl } from '@/lib/seo/site';
 import './globals.css';
 
 const inter = Inter({
@@ -11,49 +12,78 @@ const inter = Inter({
   display: 'swap',
 });
 
+const siteUrl = getSiteUrl();
+
 export const metadata: Metadata = {
-  metadataBase: new URL('https://planmijubilacion.es'),
+  metadataBase: new URL(siteUrl),
   title: {
-    default: 'PlanMiJubilacion — Planifica tu jubilación con IA',
-    template: '%s | PlanMiJubilacion',
+    default: 'PlanMiJubilación — Ecosistema PlanMi | Planifica tu jubilación',
+    template: '%s | PlanMiJubilación',
   },
   description:
-    'Asistente inteligente para planificar tu jubilación en España. Sube tu vida laboral y descubre cuánto cobrarás, cuándo jubilarte y cómo maximizar tu pensión.',
+    'Ecosistema PlanMi: planifica tu jubilación, prestaciones y vida laboral sobre un mismo expediente digital. Simulaciones orientativas con IA. Fundador: Ramón del Pozo Rott.',
   keywords: [
-    'jubilación',
-    'pensión',
-    'Seguridad Social',
+    'jubilación España',
+    'pensión Seguridad Social',
     'vida laboral',
-    'España',
-    'autónomos',
-    'planificación financiera',
+    'planificar jubilación',
+    'cotizaciones internacionales',
+    'subsidio mayores 52',
+    'PlanMiJubilación',
+    'Ecosistema PlanMi',
+    'expediente digital jubilación',
+    'simulación pensión',
   ],
-  authors: [{ name: 'PlanMiJubilacion' }],
-  creator: 'PlanMiJubilacion',
-  publisher: 'PlanMiJubilacion S.L.',
+  authors: [{ name: 'Ramón del Pozo Rott' }, { name: 'PlanMiJubilación' }],
+  creator: 'Ramón del Pozo Rott',
+  publisher: 'PlanMiJubilación',
+  category: 'finance',
+  applicationName: 'PlanMiJubilación',
   openGraph: {
     type: 'website',
     locale: 'es_ES',
-    url: 'https://planmijubilacion.es',
-    siteName: 'PlanMiJubilacion',
-    title: 'PlanMiJubilacion — Planifica tu jubilación con IA',
-    description: 'Sube tu vida laboral. La IA hace el resto.',
-    images: [{ url: '/og.png', width: 1200, height: 630 }],
+    url: siteUrl,
+    siteName: 'PlanMiJubilación',
+    title: 'PlanMiJubilación — Ecosistema PlanMi',
+    description:
+      'Plataforma integral de planificación social y financiera. Jubilación, prestaciones y vida laboral.',
+    images: [
+      {
+        url: '/logo1.png',
+        width: 1200,
+        height: 630,
+        alt: 'PlanMiJubilación',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'PlanMiJubilacion',
-    description: 'Planifica tu jubilación con IA en minutos',
+    title: 'PlanMiJubilación — Ecosistema PlanMi',
+    description: 'Planifica tu jubilación con un expediente digital seguro.',
+    images: ['/logo1.png'],
   },
   robots: {
     index: true,
     follow: true,
-    googleBot: { index: true, follow: true },
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
   },
-  alternates: { canonical: 'https://planmijubilacion.es' },
+  alternates: {
+    canonical: siteUrl,
+    languages: { 'es-ES': siteUrl },
+  },
   icons: {
     icon: [{ url: '/logo1.png', type: 'image/png' }],
     apple: [{ url: '/logo1.png', type: 'image/png' }],
+  },
+  manifest: '/manifest.webmanifest',
+  other: {
+    'msapplication-TileColor': '#0f3d2e',
   },
 };
 
@@ -82,7 +112,10 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:bg-primary focus:text-primary-foreground focus:px-4 focus:py-2 focus:rounded-md">
+            <a
+              href="#main"
+              className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:bg-primary focus:text-primary-foreground focus:px-4 focus:py-2 focus:rounded-md"
+            >
               Saltar al contenido
             </a>
             {children}

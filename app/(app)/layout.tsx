@@ -8,6 +8,11 @@ import { redirect } from 'next/navigation';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
+/** Capa SEO: el expediente nunca debe indexarse. */
+export const metadata = {
+  robots: { index: false, follow: false, nocache: true },
+};
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const profile = await getProfile();
   if (!profile) redirect('/login');

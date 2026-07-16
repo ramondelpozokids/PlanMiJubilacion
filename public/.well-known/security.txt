@@ -1,0 +1,7 @@
+Contact: mailto:privacidad@planmijubilacion.es
+Contact: mailto:legal@planmijubilacion.es
+Expires: 2027-07-16T00:00:00.000Z
+Preferred-Languages: es
+Canonical: https://planmijubilacion.es
+Policy: https://planmijubilacion.es/legal/privacy
+Acknowledgments: https://planmijubilacion.es/legal/aviso-legal

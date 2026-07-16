@@ -1,16 +1,84 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/layout/logo';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { getUser } from '@/lib/supabase/server';
 import { PlanMiSuite } from '@/components/features/planmi-suite';
 import { PLANMI_BRAND } from '@/lib/planmi/products';
+import { getSiteUrl } from '@/lib/seo/site';
+
+export const metadata: Metadata = {
+  title: 'PlanMiJubilación — Ecosistema PlanMi | Planifica tu jubilación',
+  description:
+    'Plataforma integral de planificación social y financiera. Jubilación, prestaciones y vida laboral sobre un mismo expediente digital seguro.',
+  alternates: { canonical: getSiteUrl() },
+  openGraph: {
+    title: 'PlanMiFuturo · Ecosistema PlanMi',
+    description:
+      'Jubilación, prestaciones y vida laboral sobre un mismo expediente digital.',
+    url: getSiteUrl(),
+  },
+};
+
+function JsonLd() {
+  const base = getSiteUrl();
+  const data = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization',
+        name: 'PlanMiJubilación',
+        url: base,
+        logo: `${base}/logo1.png`,
+        founder: {
+          '@type': 'Person',
+          name: 'Ramón del Pozo Rott',
+        },
+        contactPoint: {
+          '@type': 'ContactPoint',
+          email: 'info@ramondelpozorott.es',
+          contactType: 'customer service',
+          availableLanguage: 'Spanish',
+        },
+      },
+      {
+        '@type': 'WebSite',
+        name: 'PlanMiJubilación',
+        url: base,
+        inLanguage: 'es-ES',
+        description:
+          'Ecosistema PlanMi: planificación de jubilación, prestaciones y vida laboral.',
+        publisher: { '@type': 'Organization', name: 'PlanMiJubilación' },
+      },
+      {
+        '@type': 'SoftwareApplication',
+        name: 'PlanMiJubilación',
+        applicationCategory: 'FinanceApplication',
+        operatingSystem: 'Web',
+        offers: {
+          '@type': 'Offer',
+          price: '0',
+          priceCurrency: 'EUR',
+        },
+      },
+    ],
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+    />
+  );
+}
 
 export default async function HomePage() {
   const user = await getUser();
 
   return (
     <main className="min-h-screen">
+      <JsonLd />
       <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-20 print:hidden">
         <div className="max-w-6xl mx-auto px-6 py-6 md:py-7 flex items-center justify-between gap-4">
           <Logo priority size="home" />
@@ -61,6 +129,7 @@ export default async function HomePage() {
           </div>
           <p className="mt-8 text-xs text-muted-foreground max-w-xl">
             Simulaciones orientativas. No sustituyen el cálculo oficial de la Seguridad Social.
+            Tus documentos se tratan con acceso restringido y cifrado en tránsito.
           </p>
         </div>
       </section>

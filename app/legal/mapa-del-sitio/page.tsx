@@ -83,6 +83,24 @@ export default function MapaDelSitioPage() {
           { href: '/legal/terms', label: 'Términos y condiciones' },
           { href: '/legal/cookies', label: 'Política de cookies' },
           { href: '/legal/mapa-del-sitio', label: 'Mapa del sitio' },
+          { href: '/robots.txt', label: 'robots.txt' },
+          { href: '/sitemap.xml', label: 'Sitemap XML' },
+        ]}
+      />
+
+      <SiteGroup
+        title="Seguridad y confianza"
+        items={[
+          {
+            href: '/.well-known/security.txt',
+            label: 'security.txt',
+            note: 'Contacto para incidencias de seguridad',
+          },
+          {
+            href: '/legal/privacy',
+            label: 'Capas de protección de datos',
+            note: 'Auth, RLS, HTTPS/CSP, noindex del expediente',
+          },
         ]}
       />
 

@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { isSupabaseConfigured, getSupabaseEnv } from '@/lib/supabase/env';
+import { isPrivatePath } from '@/lib/seo/site';
 
 const PROTECTED_PATHS = [
   '/dashboard',
@@ -19,6 +20,23 @@ const PROTECTED_PATHS = [
   '/informes',
 ];
 
+function withSecurityHeaders(response: NextResponse, pathname: string) {
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=(), payment=(), usb=()'
+  );
+
+  if (isPrivatePath(pathname)) {
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet');
+    response.headers.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+  }
+
+  return response;
+}
+
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isProtected = PROTECTED_PATHS.some((path) => pathname.startsWith(path));
@@ -28,9 +46,9 @@ export async function middleware(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
       url.searchParams.set('error', 'supabase_not_configured');
-      return NextResponse.redirect(url);
+      return withSecurityHeaders(NextResponse.redirect(url), pathname);
     }
-    return NextResponse.next();
+    return withSecurityHeaders(NextResponse.next(), pathname);
   }
 
   let supabaseResponse = NextResponse.next({ request });
@@ -38,20 +56,19 @@ export async function middleware(request: NextRequest) {
   const { url, anonKey } = getSupabaseEnv();
 
   const supabase = createServerClient(url, anonKey, {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
-        },
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
       },
-    }
-  );
+      setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        supabaseResponse = NextResponse.next({ request });
+        cookiesToSet.forEach(({ name, value, options }) =>
+          supabaseResponse.cookies.set(name, value, options)
+        );
+      },
+    },
+  });
 
   const {
     data: { user },
@@ -61,16 +78,16 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(url);
+    return withSecurityHeaders(NextResponse.redirect(url), pathname);
   }
 
   if (user && pathname === '/login') {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
-    return NextResponse.redirect(url);
+    return withSecurityHeaders(NextResponse.redirect(url), pathname);
   }
 
-  return supabaseResponse;
+  return withSecurityHeaders(supabaseResponse, pathname);
 }
 
 export const config = {

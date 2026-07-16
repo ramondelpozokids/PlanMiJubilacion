@@ -150,9 +150,30 @@ export default function PrivacyPage() {
 
       <h2>8. Seguridad</h2>
       <p>
-        Aplicamos medidas técnicas y organizativas apropiadas: cifrado TLS en tránsito, control de
-        accesos, segregación de entornos, políticas de mínimo privilegio y revisión de incidentes.
-        Ningún sistema es 100 % seguro; si detectas un problema, avísanos de inmediato.
+        Aplicamos varias capas de protección sobre datos confidenciales (vida laboral, bases,
+        documentos de Seguridad Social):
+      </p>
+      <ol>
+        <li>
+          <strong>Acceso autenticado:</strong> las rutas del expediente requieren sesión (middleware
+          + layout). Sin login no hay acceso a documentos ni simulaciones privadas.
+        </li>
+        <li>
+          <strong>Control en base de datos (RLS):</strong> en Supabase cada usuario solo puede leer y
+          escribir sus propios registros.
+        </li>
+        <li>
+          <strong>Cifrado en tránsito y cabeceras del navegador:</strong> HTTPS/TLS, HSTS, CSP,
+          anti-clickjacking y políticas que limitan cámara, micrófono y geolocalización.
+        </li>
+        <li>
+          <strong>No indexación del expediente:</strong> robots.txt, meta robots y cabecera{' '}
+          <code>X-Robots-Tag</code> impiden que buscadores indexen dashboard, subidas e informes.
+        </li>
+      </ol>
+      <p>
+        Ningún sistema es 100 % seguro; si detectas un incidente, avísanos de inmediato en{' '}
+        <a href="mailto:privacidad@planmijubilacion.es">privacidad@planmijubilacion.es</a>.
       </p>
 
       <h2>9. Menores</h2>
