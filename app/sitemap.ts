@@ -4,7 +4,7 @@ import { getSiteUrl } from '@/lib/seo/site';
 /** Solo URLs públicas — nada de dashboard ni documentos. */
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = getSiteUrl();
-  const lastModified = new Date('2026-07-16');
+  const lastModified = new Date('2026-07-17');
 
   const paths: { path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[0]['changeFrequency'] }[] =
     [

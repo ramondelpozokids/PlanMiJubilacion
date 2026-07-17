@@ -22,8 +22,18 @@ En **SQL Editor** → **New query**, pega y ejecuta en orden:
 7. `migrations/007_consultation_life_path.sql` — escenario vital por consulta (si ya ejecutaste 006 antes)
 8. `migrations/008_billing_international.sql` — precios configurables, pedidos y facturas/recibos
 9. `migrations/009_billing_issue_policies.sql` — emisión de documentos + numeración FAC/REC/INF
+10. `migrations/010_contact_submissions.sql` — formulario de contacto + bucket cifrado
+11. `migrations/011_consultation_birth_date.sql` — fecha de nacimiento en consultas de terceros
 
-### Opción A — CLI (recomendado)
+### Comprobación rápida (estado típico producción)
+
+| Pieza | Tabla / recurso |
+|-------|-----------------|
+| Core | `profiles`, `documents`, `expedientes` |
+| Asesoría | `consultation_cases` (+ `life_path`) |
+| Contacto | `contact_submissions`, bucket `contact-encrypted` |
+| Facturación | `pricing_rules`, `service_orders`, `billing_documents` |
+| Pendiente frecuente | columna `client_birth_date` → ejecuta `MANUAL_011.sql` |
 
 1. Añade en `.env.local` la contraseña de la base de datos:
 

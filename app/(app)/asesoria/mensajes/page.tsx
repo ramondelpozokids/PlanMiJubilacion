@@ -35,7 +35,9 @@ export default async function ContactInboxPage({
           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Fundador</p>
           <h1 className="text-2xl font-semibold tracking-tight">Bandeja de contacto</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Mensajes del formulario público. Los adjuntos llegan cifrados (AES-256-GCM).
+            Mensajes del formulario público dirigidos a la bandeja del fundador
+            (contacto: info@ramondelpozorott.es). Los adjuntos llegan cifrados
+            (AES-256-GCM).
           </p>
         </div>
         <Link href="/asesoria">
@@ -52,11 +54,6 @@ export default async function ContactInboxPage({
             /contacto
           </Link>
           , aparecerán aquí.
-          <br />
-          <span className="text-xs mt-2 block">
-            Si acabas de desplegar, ejecuta en Supabase el SQL{' '}
-            <code>MANUAL_010.sql</code>.
-          </span>
         </p>
       ) : (
         <ul className="space-y-4">

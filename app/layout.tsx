@@ -82,6 +82,9 @@ export const metadata: Metadata = {
     apple: [{ url: '/logo1.png', type: 'image/png' }],
   },
   manifest: '/manifest.webmanifest',
+  verification: process.env.GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+    : undefined,
   other: {
     'msapplication-TileColor': '#0f3d2e',
   },

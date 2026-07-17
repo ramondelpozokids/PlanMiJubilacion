@@ -17,7 +17,10 @@ export const DEFAULT_ISSUER: IssuerInfo = {
   legalName: process.env.BILLING_LEGAL_NAME ?? 'PlanMiJubilación',
   taxId: process.env.BILLING_TAX_ID ?? 'PENDIENTE',
   address: process.env.BILLING_ADDRESS ?? 'España',
-  email: process.env.BILLING_EMAIL ?? 'info@ramondelpozorott.es',
+  email:
+    process.env.BILLING_EMAIL?.trim() ||
+    process.env.CONTACT_NOTIFY_EMAIL?.trim() ||
+    'info@ramondelpozorott.es',
   web: process.env.NEXT_PUBLIC_APP_URL ?? 'https://planmijubilacion.es',
   phone: process.env.BILLING_PHONE,
 };
