@@ -69,7 +69,16 @@ export function Dropzone() {
       router.push('/analysis');
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Error al subir');
+      const raw = error instanceof Error ? error.message : String(error);
+      const isOpaque =
+        raw.includes('Server Components render') ||
+        raw.includes('digest') ||
+        raw.includes('omitted in production');
+      toast.error(
+        isOpaque
+          ? 'Error al subir el PDF en el servidor. Revisa en Vercel → Logs el detalle, o vuelve a intentarlo con un PDF más pequeño (<4 MB).'
+          : raw || 'Error al subir'
+      );
     } finally {
       setUploading(false);
       setProgress('');

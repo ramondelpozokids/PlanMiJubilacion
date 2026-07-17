@@ -67,7 +67,30 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '10mb',
     },
-    serverComponentsExternalPackages: ['pdf-parse', 'pdfjs-dist', '@google-cloud/documentai'],
+    serverComponentsExternalPackages: [
+      'pdf-parse',
+      'pdfjs-dist',
+      '@napi-rs/canvas',
+      '@google-cloud/documentai',
+    ],
+  },
+  // Incluir binarios nativos de canvas + worker en el deploy serverless de Vercel
+  outputFileTracingIncludes: {
+    '/api/documents/process': [
+      './node_modules/pdf-parse/**/*',
+      './node_modules/pdfjs-dist/**/*',
+      './node_modules/@napi-rs/canvas/**/*',
+    ],
+    '/upload': [
+      './node_modules/pdf-parse/**/*',
+      './node_modules/pdfjs-dist/**/*',
+      './node_modules/@napi-rs/canvas/**/*',
+    ],
+    '/analysis': [
+      './node_modules/pdf-parse/**/*',
+      './node_modules/pdfjs-dist/**/*',
+      './node_modules/@napi-rs/canvas/**/*',
+    ],
   },
   images: {
     remotePatterns: [

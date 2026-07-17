@@ -13,7 +13,9 @@ export async function uploadDocument(file: File, userId: string) {
       contentType: file.type,
     });
 
-  if (error) throw error;
+  if (error) {
+    throw new Error(error.message || 'Error al subir el archivo a Storage');
+  }
   return data.path;
 }
 

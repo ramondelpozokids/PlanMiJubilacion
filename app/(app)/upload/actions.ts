@@ -19,12 +19,29 @@ const uploadSchema = z.object({
 });
 
 function friendlyError(error: unknown): string {
-  const msg = error instanceof Error ? error.message : String(error);
+  const msg =
+    error instanceof Error
+      ? error.message
+      : typeof error === 'object' &&
+          error !== null &&
+          'message' in error &&
+          typeof (error as { message: unknown }).message === 'string'
+        ? (error as { message: string }).message
+        : String(error);
 
+  if (/DOMMatrix is not defined/i.test(msg)) {
+    return 'Error al leer el PDF en el servidor (DOMMatrix). Requiere redeploy con @napi-rs/canvas.';
+  }
+  if (/Server Components render|omitted in production/i.test(msg)) {
+    return 'Error en el servidor al subir. Prueba un PDF menor de 4 MB o revisa los logs de Vercel.';
+  }
+  if (msg.includes('Payload Too Large') || msg.includes('413') || /body.*limit|Entity Too Large/i.test(msg)) {
+    return 'El PDF es demasiado grande para el servidor (límite ~4,5 MB en Vercel). Sube un archivo más ligero.';
+  }
   if (msg.includes('Bucket not found') || msg.includes('documents')) {
     return 'Bucket "documents" no existe. Ejecuta supabase/migrations/002_storage.sql en Supabase.';
   }
-  if (msg.includes('expedientes') || msg.includes('relation') && msg.includes('does not exist')) {
+  if ((msg.includes('expedientes') || msg.includes('relation')) && msg.includes('does not exist')) {
     return 'Tabla expedientes no existe. Ejecuta supabase/migrations/004_expediente.sql en Supabase.';
   }
   if (msg.includes('row-level security') || msg.includes('RLS')) {
@@ -47,44 +64,51 @@ function friendlyError(error: unknown): string {
 }
 
 export async function uploadDocumentOnly(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('No autenticado');
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error('No autenticado');
 
-  const file = formData.get('file') as File;
-  const documentType = formData.get('documentType') as string;
+    const file = formData.get('file') as File;
+    const documentType = formData.get('documentType') as string;
 
-  if (!file || file.size === 0) throw new Error('Archivo vacío');
-  if (!ALLOWED_TYPES.includes(file.type)) throw new Error('Formato no soportado (PDF, JPG, PNG, WEBP)');
-  if (file.size > MAX_SIZE) throw new Error('Archivo demasiado grande (máx. 10 MB)');
+    if (!file || file.size === 0) throw new Error('Archivo vacío');
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      throw new Error('Formato no soportado (PDF, JPG, PNG, WEBP)');
+    }
+    if (file.size > MAX_SIZE) throw new Error('Archivo demasiado grande (máx. 10 MB)');
 
-  const validation = uploadSchema.safeParse({ documentType });
-  if (!validation.success) throw new Error('Tipo de documento inválido');
+    const validation = uploadSchema.safeParse({ documentType });
+    if (!validation.success) throw new Error('Tipo de documento inválido');
 
-  const storagePath = await uploadDocument(file, user.id);
+    const storagePath = await uploadDocument(file, user.id);
 
-  const { data: doc, error: docError } = await supabase
-    .from('documents')
-    .insert({
-      user_id: user.id,
-      name: file.name,
-      mime_type: file.type,
-      size_bytes: file.size,
-      storage_path: storagePath,
-      document_type: validation.data.documentType,
-      ocr_status: 'pending',
-    })
-    .select()
-    .single();
+    const { data: doc, error: docError } = await supabase
+      .from('documents')
+      .insert({
+        user_id: user.id,
+        name: file.name,
+        mime_type: file.type,
+        size_bytes: file.size,
+        storage_path: storagePath,
+        document_type: validation.data.documentType,
+        ocr_status: 'pending',
+      })
+      .select()
+      .single();
 
-  if (docError) throw docError;
+    if (docError) throw new Error(docError.message);
 
-  revalidatePath('/upload');
-  revalidatePath('/analysis');
+    revalidatePath('/upload');
+    revalidatePath('/analysis');
 
-  return { success: true, documentId: doc.id, status: 'pending' as const };
+    return { success: true, documentId: doc.id, status: 'pending' as const };
+  } catch (error) {
+    console.error('uploadDocumentOnly:', error);
+    throw new Error(friendlyError(error));
+  }
 }
 
 /** Sube y procesa en una sola acción (server-side). */

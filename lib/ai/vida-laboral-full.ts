@@ -501,8 +501,8 @@ async function extractLocalFallbackFromPdf(
   fileBuffer: Buffer,
   documentType: string
 ): Promise<FullDocumentExtraction> {
-  const { PDFParse } = await import('pdf-parse');
-  const parser = new PDFParse({ data: fileBuffer });
+  const { createPdfParser } = await import('@/lib/pdf/create-parser');
+  const parser = await createPdfParser(fileBuffer);
 
   try {
     const textResult = await parser.getText();
@@ -581,8 +581,8 @@ async function extractFullDocumentFromPdfWithOpenAi(
   fileBuffer: Buffer,
   documentType: string
 ): Promise<FullDocumentExtraction> {
-  const { PDFParse } = await import('pdf-parse');
-  const parser = new PDFParse({ data: fileBuffer });
+  const { createPdfParser } = await import('@/lib/pdf/create-parser');
+  const parser = await createPdfParser(fileBuffer);
 
   try {
     const textResult = await parser.getText();
