@@ -4,11 +4,8 @@
  */
 import { addYears, differenceInMonths } from 'date-fns';
 import { type PensionResult } from './pension';
-import {
-  getEarlyCoefficientPerQuarter,
-  getActiveSsRules,
-  resolveOrdinaryRetirement,
-} from '@/lib/rules/ss-rules';
+import { getActiveSsRules, resolveOrdinaryRetirement } from '@/lib/rules/ss-rules';
+import { computeAnticipation } from '@/lib/rules/early-retirement';
 import { getActiveEconomicParams } from '@/lib/rules/economic';
 import type { ExpedienteDigital } from '@/lib/expediente/types';
 import { applyEarlyReduction, getRealPensionSnapshot } from './real-pension';
@@ -164,27 +161,30 @@ export function simulateScenario(
     asOf: today,
     assumeContinueContributing: true,
   }).date;
-  const monthsEarly = Math.max(0, differenceInMonths(ord, retirementDate));
+  const anticipation = computeAnticipation(ord, retirementDate);
+  const monthsEarly = anticipation.monthsEarly;
   const yearsAtRet = totalAtRet / 12;
-  const coef = getEarlyCoefficientPerQuarter(yearsAtRet);
-  const quarters = monthsEarly > 0 ? Math.ceil(monthsEarly / 3) : 0;
-  const reductionPercent =
-    monthsEarly > 0 ? Math.min(50, Math.round(quarters * coef * 10000) / 100) : 0;
 
   let monthly = 0;
   let result: PensionResult;
   let quality: 'full' | 'partial' | 'none' = 'none';
   let note = real.note;
+  let reductionPercent = 0;
 
   if (real.ordinaryMonthly != null) {
-    // Ya calculado a la fecha elegida; si anticipas vs ordinaria, el BR ya refleja
-    // el tramo hasta esa fecha. Solo aplicamos coeficientes si monthsEarly>0 y el
-    // snapshot se pidió a ordinaria… Aquí pedimos a la fecha elegida → no doble reducción.
     monthly = real.ordinaryMonthly;
     if (monthsEarly > 0) {
-      // El snapshot ya usa bases hasta esa fecha; la reducción legal va aparte
-      const reduced = applyEarlyReduction(monthly, monthsEarly, yearsAtRet);
+      const reduced = applyEarlyReduction(monthly, monthsEarly, yearsAtRet, {
+        ordinaryDate: ord,
+        chosenDate: retirementDate,
+        birthDate: birth,
+        rulesYear: retirementDate.getFullYear(),
+      });
       monthly = reduced.monthly;
+      reductionPercent = reduced.reductionPercent;
+      if (reduced.detail?.resolution.legalNormSummary) {
+        note = `${note} ${reduced.detail.resolution.legalNormSummary}`;
+      }
     }
     quality =
       real.quality === 'full_bases'
@@ -246,7 +246,9 @@ export function simulateScenario(
     isRecommended: monthsEarly === 0 && convenioMonths === 0,
     notes: [
       note,
-      monthsEarly > 0 ? `Reducción anticipada ≈ ${reductionPercent}%` : 'Sin reducción por anticipación',
+      monthsEarly > 0
+        ? `Reducción anticipada oficial ${reductionPercent}% (${monthsEarly} meses; art. 207/208 LGSS)`
+        : 'Sin reducción por anticipación',
       convenioMonths > 0
         ? `Convenio ${convenioMonths} meses · coste ${convenioCost.toLocaleString('es-ES')} €`
         : null,

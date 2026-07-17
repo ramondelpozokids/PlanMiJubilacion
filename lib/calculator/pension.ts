@@ -1,11 +1,10 @@
 /**
  * Motor de cálculo de pensión — importes desde Motor Económico.
+ * Reducción anticipada: tablas oficiales BOE (lib/rules/early-retirement).
  */
-import {
-  getActiveSsRules,
-  getEarlyCoefficientPerQuarter,
-} from '@/lib/rules/ss-rules';
+import { getActiveSsRules } from '@/lib/rules/ss-rules';
 import { getActiveEconomicParams } from '@/lib/rules/economic';
+import { lookupOfficialReductionPercent, resolveCareerBracket } from '@/lib/rules/early-retirement';
 
 export interface PensionInput {
   birthDate: string;
@@ -15,6 +14,9 @@ export interface PensionInput {
   isVoluntaryEarlyRetirement?: boolean;
   monthsOfEarlyRetirement?: number;
   hasDependents?: boolean;
+  /** Año del hecho causante para elegir tabla. */
+  rulesYear?: number;
+  declareInvoluntaryCause?: boolean;
 }
 
 export interface PensionResult {
@@ -43,23 +45,43 @@ export function calculatePension(input: PensionInput): PensionResult {
   const percentageByYears = calculatePercentage(yearsContributed);
 
   let monthlyPension = baseReguladora * (percentageByYears / 100);
-  let reductionFactor = 1;
+  let reductionPercent = 0;
 
   if (monthsOfEarlyRetirement > 0) {
-    const quartersEarly = Math.ceil(monthsOfEarlyRetirement / 3);
-    reductionFactor =
-      1 - quartersEarly * getEarlyCoefficientPerQuarter(yearsContributed, rules);
-    reductionFactor = Math.max(0.5, reductionFactor);
+    const bracket = resolveCareerBracket(Math.floor(totalMonthsContributed));
+    const year =
+      input.rulesYear ??
+      (input.retirementDate
+        ? new Date(input.retirementDate).getFullYear()
+        : new Date().getFullYear());
+    const kind = input.declareInvoluntaryCause ? 'involuntary' : 'voluntary';
+    const looked = lookupOfficialReductionPercent({
+      kind,
+      year,
+      monthsEarly: monthsOfEarlyRetirement,
+      bracketId: bracket.id,
+    });
+    reductionPercent = looked.reductionPercent;
+    const exceedsMax = monthlyPension > rules.maxPensionMonthly;
+    if (exceedsMax && kind === 'voluntary') {
+      const overMax = lookupOfficialReductionPercent({
+        kind: 'voluntary_over_max',
+        year,
+        monthsEarly: monthsOfEarlyRetirement,
+        bracketId: bracket.id,
+      });
+      reductionPercent = overMax.reductionPercent;
+      monthlyPension = rules.maxPensionMonthly * (1 - reductionPercent / 100);
+    } else {
+      monthlyPension = monthlyPension * (1 - reductionPercent / 100);
+    }
   }
 
-  const effectivePension = monthlyPension * reductionFactor;
-  const isCapped = effectivePension > rules.maxPensionMonthly;
-  const finalPension = Math.min(effectivePension, rules.maxPensionMonthly);
+  const isCapped = monthlyPension > rules.maxPensionMonthly && monthsOfEarlyRetirement <= 0;
+  const finalPension = Math.min(monthlyPension, rules.maxPensionMonthly);
 
   return {
-    baseReguladora: round(
-      (finalPension / (percentageByYears / 100)) * (1 / reductionFactor)
-    ),
+    baseReguladora: round(baseReguladora),
     percentageByYears,
     monthlyPension: round(finalPension),
     annualPension: round(finalPension * 14),
@@ -67,7 +89,9 @@ export function calculatePension(input: PensionInput): PensionResult {
     isCapped,
     maxPension2024: rules.maxPensionMonthly,
     disclaimer:
-      'Cálculo orientativo. Parámetros desde Motor Económico. Oficial: Seguridad Social.',
+      reductionPercent > 0
+        ? `Cálculo orientativo. Reducción anticipada oficial ${reductionPercent}% (tabla BOE). Oficial: Seguridad Social.`
+        : 'Cálculo orientativo. Parámetros desde Motor Económico. Oficial: Seguridad Social.',
   };
 }
 

@@ -282,6 +282,7 @@ export interface Database {
           founder_id: string;
           client_name: string;
           client_note: string | null;
+          client_birth_date: string | null;
           expediente_data: Json;
           life_path: Json;
           completitud_score: number;
@@ -293,6 +294,7 @@ export interface Database {
           founder_id: string;
           client_name: string;
           client_note?: string | null;
+          client_birth_date?: string | null;
           expediente_data?: Json;
           life_path?: Json;
           completitud_score?: number;
@@ -304,6 +306,7 @@ export interface Database {
           founder_id?: string;
           client_name?: string;
           client_note?: string | null;
+          client_birth_date?: string | null;
           expediente_data?: Json;
           life_path?: Json;
           completitud_score?: number;

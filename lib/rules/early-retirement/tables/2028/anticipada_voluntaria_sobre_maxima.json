@@ -1,0 +1,161 @@
+{
+  "year": 2028,
+  "modality": "voluntary_over_max",
+  "legalBasis": "LGSS DT 34ª + art. 210.3 (aplicación gradual cuando la pensión teórica supera la máxima)",
+  "boeRef": "BOE-A-2021-21652",
+  "unit": "percent",
+  "note": "Solo aplicable si la pensión teórica supera el límite máximo. Transición 2024–2033.",
+  "maxMonths": 24,
+  "brackets": [
+    "less_than_38y6m",
+    "from_38y6m_to_41y6m",
+    "from_41y6m_to_44y6m",
+    "from_44y6m"
+  ],
+  "byMonthsEarly": {
+    "1": {
+      "less_than_38y6m": 1.88,
+      "from_38y6m_to_41y6m": 1.81,
+      "from_41y6m_to_44y6m": 1.73,
+      "from_44y6m": 1.66
+    },
+    "2": {
+      "less_than_38y6m": 1.94,
+      "from_38y6m_to_41y6m": 1.87,
+      "from_41y6m_to_44y6m": 1.79,
+      "from_44y6m": 1.71
+    },
+    "3": {
+      "less_than_38y6m": 2.01,
+      "from_38y6m_to_41y6m": 1.93,
+      "from_41y6m_to_44y6m": 1.85,
+      "from_44y6m": 1.77
+    },
+    "4": {
+      "less_than_38y6m": 2.34,
+      "from_38y6m_to_41y6m": 2.25,
+      "from_41y6m_to_44y6m": 2.17,
+      "from_44y6m": 2.09
+    },
+    "5": {
+      "less_than_38y6m": 2.42,
+      "from_38y6m_to_41y6m": 2.33,
+      "from_41y6m_to_44y6m": 2.24,
+      "from_44y6m": 2.15
+    },
+    "6": {
+      "less_than_38y6m": 2.5,
+      "from_38y6m_to_41y6m": 2.41,
+      "from_41y6m_to_44y6m": 2.32,
+      "from_44y6m": 2.23
+    },
+    "7": {
+      "less_than_38y6m": 2.85,
+      "from_38y6m_to_41y6m": 2.75,
+      "from_41y6m_to_44y6m": 2.66,
+      "from_44y6m": 2.56
+    },
+    "8": {
+      "less_than_38y6m": 2.95,
+      "from_38y6m_to_41y6m": 2.85,
+      "from_41y6m_to_44y6m": 2.75,
+      "from_44y6m": 2.65
+    },
+    "9": {
+      "less_than_38y6m": 3.07,
+      "from_38y6m_to_41y6m": 2.96,
+      "from_41y6m_to_44y6m": 2.86,
+      "from_44y6m": 2.75
+    },
+    "10": {
+      "less_than_38y6m": 3.45,
+      "from_38y6m_to_41y6m": 3.34,
+      "from_41y6m_to_44y6m": 3.22,
+      "from_44y6m": 3.11
+    },
+    "11": {
+      "less_than_38y6m": 3.59,
+      "from_38y6m_to_41y6m": 3.47,
+      "from_41y6m_to_44y6m": 3.36,
+      "from_44y6m": 3.24
+    },
+    "12": {
+      "less_than_38y6m": 3.75,
+      "from_38y6m_to_41y6m": 3.63,
+      "from_41y6m_to_44y6m": 3.5,
+      "from_44y6m": 3.38
+    },
+    "13": {
+      "less_than_38y6m": 4.19,
+      "from_38y6m_to_41y6m": 4.05,
+      "from_41y6m_to_44y6m": 3.92,
+      "from_44y6m": 3.79
+    },
+    "14": {
+      "less_than_38y6m": 4.4,
+      "from_38y6m_to_41y6m": 4.25,
+      "from_41y6m_to_44y6m": 4.11,
+      "from_44y6m": 3.97
+    },
+    "15": {
+      "less_than_38y6m": 4.64,
+      "from_38y6m_to_41y6m": 4.48,
+      "from_41y6m_to_44y6m": 4.33,
+      "from_44y6m": 4.18
+    },
+    "16": {
+      "less_than_38y6m": 5.17,
+      "from_38y6m_to_41y6m": 5.0,
+      "from_41y6m_to_44y6m": 4.84,
+      "from_44y6m": 4.67
+    },
+    "17": {
+      "less_than_38y6m": 5.5,
+      "from_38y6m_to_41y6m": 5.32,
+      "from_41y6m_to_44y6m": 5.14,
+      "from_44y6m": 4.96
+    },
+    "18": {
+      "less_than_38y6m": 5.9,
+      "from_38y6m_to_41y6m": 5.7,
+      "from_41y6m_to_44y6m": 5.5,
+      "from_44y6m": 5.3
+    },
+    "19": {
+      "less_than_38y6m": 6.64,
+      "from_38y6m_to_41y6m": 6.42,
+      "from_41y6m_to_44y6m": 6.2,
+      "from_44y6m": 5.95
+    },
+    "20": {
+      "less_than_38y6m": 7.25,
+      "from_38y6m_to_41y6m": 7.0,
+      "from_41y6m_to_44y6m": 6.75,
+      "from_44y6m": 6.35
+    },
+    "21": {
+      "less_than_38y6m": 8.04,
+      "from_38y6m_to_41y6m": 7.75,
+      "from_41y6m_to_44y6m": 7.47,
+      "from_44y6m": 6.75
+    },
+    "22": {
+      "less_than_38y6m": 9.34,
+      "from_38y6m_to_41y6m": 9.0,
+      "from_41y6m_to_44y6m": 8.67,
+      "from_44y6m": 7.5
+    },
+    "23": {
+      "less_than_38y6m": 10.8,
+      "from_38y6m_to_41y6m": 10.25,
+      "from_41y6m_to_44y6m": 9.5,
+      "from_44y6m": 8.0
+    },
+    "24": {
+      "less_than_38y6m": 12.5,
+      "from_38y6m_to_41y6m": 11.5,
+      "from_41y6m_to_44y6m": 10.5,
+      "from_44y6m": 8.5
+    }
+  }
+}

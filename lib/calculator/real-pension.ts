@@ -3,11 +3,12 @@
  * La simulación oficial SS es solo referencia (hipótesis empleo continuo) — no prevalece.
  */
 import type { ExpedienteDigital } from '@/lib/expediente/types';
+import { getActiveSsRules, resolveOrdinaryRetirement } from '@/lib/rules/ss-rules';
 import {
-  getActiveSsRules,
-  getEarlyCoefficientPerQuarter,
-  resolveOrdinaryRetirement,
-} from '@/lib/rules/ss-rules';
+  applyOfficialEarlyReduction,
+  type ApplyOfficialEarlyReductionResult,
+  type ResolveEarlyRetirementInput,
+} from '@/lib/rules/early-retirement';
 import { listDocumentedBases } from './from-expediente';
 import { calculatePension } from './pension';
 import {
@@ -246,15 +247,62 @@ export function getRealPensionSnapshot(
   };
 }
 
+/**
+ * Aplica coeficiente reductor oficial (tabla BOE).
+ * Preferir pasar fechas (ordinary/chosen/birth) para «mes o fracción de mes».
+ */
 export function applyEarlyReduction(
   ordinaryMonthly: number,
   monthsEarly: number,
-  yearsContributedAtRet: number
-): { monthly: number; reductionPercent: number } {
-  if (monthsEarly <= 0) return { monthly: ordinaryMonthly, reductionPercent: 0 };
-  const coef = getEarlyCoefficientPerQuarter(yearsContributedAtRet);
-  const quarters = Math.ceil(monthsEarly / 3);
-  const reductionPercent = Math.min(50, Math.round(quarters * coef * 10000) / 100);
-  const monthly = Math.round(ordinaryMonthly * (1 - quarters * coef) * 100) / 100;
-  return { monthly: Math.max(ordinaryMonthly * 0.5, monthly), reductionPercent };
+  yearsContributedAtRet: number,
+  options?: Partial<
+    Omit<ResolveEarlyRetirementInput, 'completeContributionMonthsAtChosen'>
+  > & {
+    maxPensionMonthly?: number;
+  }
+): { monthly: number; reductionPercent: number; detail?: ApplyOfficialEarlyReductionResult } {
+  if (monthsEarly <= 0 && !options?.chosenDate) {
+    return { monthly: ordinaryMonthly, reductionPercent: 0 };
+  }
+
+  const completeMonths = Math.floor(yearsContributedAtRet * 12);
+  const rules = getActiveSsRules();
+  const maxPension = options?.maxPensionMonthly ?? rules.maxPensionMonthly;
+
+  // Fechas: si no se pasan, sintetizamos un adelanto exacto de N meses
+  const chosenDate = options?.chosenDate ?? new Date();
+  const ordinaryDate =
+    options?.ordinaryDate ??
+    new Date(
+      chosenDate.getFullYear(),
+      chosenDate.getMonth() + Math.max(0, monthsEarly),
+      chosenDate.getDate()
+    );
+  const birthDate =
+    options?.birthDate ??
+    new Date(chosenDate.getFullYear() - 65, chosenDate.getMonth(), chosenDate.getDate());
+
+  const exceedsMax = ordinaryMonthly > maxPension;
+  const result = applyOfficialEarlyReduction(
+    ordinaryMonthly,
+    {
+      ordinaryDate,
+      chosenDate,
+      birthDate,
+      completeContributionMonthsAtChosen: completeMonths,
+      declareInvoluntaryCause: options?.declareInvoluntaryCause,
+      applyInvoluntaryCoefficientsViaSubsidy208_3:
+        options?.applyInvoluntaryCoefficientsViaSubsidy208_3,
+      rulesYear: options?.rulesYear ?? chosenDate.getFullYear(),
+      theoreticalMonthlyExceedsMax:
+        options?.theoreticalMonthlyExceedsMax ?? exceedsMax,
+    },
+    maxPension
+  );
+
+  return {
+    monthly: result.monthly,
+    reductionPercent: result.reductionPercent,
+    detail: result,
+  };
 }

@@ -1,5 +1,5 @@
 {
-  "_comment": "Motor Económico central MIOP. Año vacío {} hereda. Cambiar un año → Cálculo+Optimización recalculan. Formato fórmulas vive en TS; importes/límites aquí.",
+  "_comment": "Motor Económico central MIOP. Año vacío {} hereda. Coeficientes anticipada oficiales: lib/rules/early-retirement/tables/ (art. 207/208 BOE). earlyCoefficients queda legacy y no alimenta el motor.",
   "2026": {
     "iprem": 610,
     "smi": 1381,

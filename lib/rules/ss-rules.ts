@@ -194,13 +194,15 @@ export function formatAgeYearsMonths(ageYears: number): string {
   return `${years} años y ${months} meses`;
 }
 
+/**
+ * @deprecated Usar `lookupOfficialReductionPercent` / `applyOfficialEarlyReduction`
+ * en `@/lib/rules/early-retirement`. Los coeficientes oficiales son mensuales (BOE), no por trimestre.
+ */
 export function getEarlyCoefficientPerQuarter(
-  yearsContributed: number,
-  rules: SsRules = SS_RULES_2026
+  _yearsContributed: number,
+  _rules: SsRules = SS_RULES_2026
 ): number {
-  const c = rules.earlyRetirementCoefficients;
-  if (yearsContributed < 38 + 6 / 12) return c.lessThan38y6m;
-  if (yearsContributed < 41 + 6 / 12) return c.between38y6mAnd41y6m;
-  if (yearsContributed < 44 + 6 / 12) return c.between41y6mAnd44y6m;
-  return c.moreThan44y6m;
+  throw new Error(
+    'getEarlyCoefficientPerQuarter está obsoleto. Usa lib/rules/early-retirement (tablas BOE art. 207/208).'
+  );
 }

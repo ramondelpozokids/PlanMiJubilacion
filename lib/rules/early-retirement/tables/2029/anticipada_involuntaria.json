@@ -1,0 +1,305 @@
+{
+  "year": 2029,
+  "modality": "involuntary",
+  "legalBasis": "LGSS art. 207 (Ley 21/2021)",
+  "boeRef": "BOE-A-2021-21652",
+  "unit": "percent",
+  "note": "Coeficiente total (%) por meses de adelanto (hasta 48) y tramo de cotización.",
+  "maxMonths": 48,
+  "brackets": [
+    "less_than_38y6m",
+    "from_38y6m_to_41y6m",
+    "from_41y6m_to_44y6m",
+    "from_44y6m"
+  ],
+  "byMonthsEarly": {
+    "48": {
+      "less_than_38y6m": 30.0,
+      "from_38y6m_to_41y6m": 28.0,
+      "from_41y6m_to_44y6m": 26.0,
+      "from_44y6m": 24.0
+    },
+    "47": {
+      "less_than_38y6m": 29.38,
+      "from_38y6m_to_41y6m": 27.42,
+      "from_41y6m_to_44y6m": 25.46,
+      "from_44y6m": 23.5
+    },
+    "46": {
+      "less_than_38y6m": 28.75,
+      "from_38y6m_to_41y6m": 26.83,
+      "from_41y6m_to_44y6m": 24.92,
+      "from_44y6m": 23.0
+    },
+    "45": {
+      "less_than_38y6m": 28.13,
+      "from_38y6m_to_41y6m": 26.25,
+      "from_41y6m_to_44y6m": 24.38,
+      "from_44y6m": 22.5
+    },
+    "44": {
+      "less_than_38y6m": 27.5,
+      "from_38y6m_to_41y6m": 25.67,
+      "from_41y6m_to_44y6m": 23.83,
+      "from_44y6m": 22.0
+    },
+    "43": {
+      "less_than_38y6m": 26.88,
+      "from_38y6m_to_41y6m": 25.08,
+      "from_41y6m_to_44y6m": 23.29,
+      "from_44y6m": 21.5
+    },
+    "42": {
+      "less_than_38y6m": 26.25,
+      "from_38y6m_to_41y6m": 24.5,
+      "from_41y6m_to_44y6m": 22.75,
+      "from_44y6m": 21.0
+    },
+    "41": {
+      "less_than_38y6m": 25.63,
+      "from_38y6m_to_41y6m": 23.92,
+      "from_41y6m_to_44y6m": 22.21,
+      "from_44y6m": 20.5
+    },
+    "40": {
+      "less_than_38y6m": 25.0,
+      "from_38y6m_to_41y6m": 23.33,
+      "from_41y6m_to_44y6m": 21.67,
+      "from_44y6m": 20.0
+    },
+    "39": {
+      "less_than_38y6m": 24.38,
+      "from_38y6m_to_41y6m": 22.75,
+      "from_41y6m_to_44y6m": 21.13,
+      "from_44y6m": 19.5
+    },
+    "38": {
+      "less_than_38y6m": 23.75,
+      "from_38y6m_to_41y6m": 22.17,
+      "from_41y6m_to_44y6m": 20.58,
+      "from_44y6m": 19.0
+    },
+    "37": {
+      "less_than_38y6m": 23.13,
+      "from_38y6m_to_41y6m": 21.58,
+      "from_41y6m_to_44y6m": 20.04,
+      "from_44y6m": 18.5
+    },
+    "36": {
+      "less_than_38y6m": 22.5,
+      "from_38y6m_to_41y6m": 21.0,
+      "from_41y6m_to_44y6m": 19.5,
+      "from_44y6m": 18.0
+    },
+    "35": {
+      "less_than_38y6m": 21.88,
+      "from_38y6m_to_41y6m": 20.42,
+      "from_41y6m_to_44y6m": 18.96,
+      "from_44y6m": 17.5
+    },
+    "34": {
+      "less_than_38y6m": 21.25,
+      "from_38y6m_to_41y6m": 19.83,
+      "from_41y6m_to_44y6m": 18.42,
+      "from_44y6m": 17.0
+    },
+    "33": {
+      "less_than_38y6m": 20.63,
+      "from_38y6m_to_41y6m": 19.25,
+      "from_41y6m_to_44y6m": 17.88,
+      "from_44y6m": 16.5
+    },
+    "32": {
+      "less_than_38y6m": 20.0,
+      "from_38y6m_to_41y6m": 18.67,
+      "from_41y6m_to_44y6m": 17.33,
+      "from_44y6m": 16.0
+    },
+    "31": {
+      "less_than_38y6m": 19.38,
+      "from_38y6m_to_41y6m": 18.08,
+      "from_41y6m_to_44y6m": 16.79,
+      "from_44y6m": 15.5
+    },
+    "30": {
+      "less_than_38y6m": 18.75,
+      "from_38y6m_to_41y6m": 17.5,
+      "from_41y6m_to_44y6m": 16.25,
+      "from_44y6m": 15.0
+    },
+    "29": {
+      "less_than_38y6m": 18.13,
+      "from_38y6m_to_41y6m": 16.92,
+      "from_41y6m_to_44y6m": 15.71,
+      "from_44y6m": 14.5
+    },
+    "28": {
+      "less_than_38y6m": 17.5,
+      "from_38y6m_to_41y6m": 16.33,
+      "from_41y6m_to_44y6m": 15.17,
+      "from_44y6m": 14.0
+    },
+    "27": {
+      "less_than_38y6m": 16.88,
+      "from_38y6m_to_41y6m": 15.75,
+      "from_41y6m_to_44y6m": 14.63,
+      "from_44y6m": 13.5
+    },
+    "26": {
+      "less_than_38y6m": 16.25,
+      "from_38y6m_to_41y6m": 15.17,
+      "from_41y6m_to_44y6m": 14.08,
+      "from_44y6m": 13.0
+    },
+    "25": {
+      "less_than_38y6m": 15.63,
+      "from_38y6m_to_41y6m": 14.58,
+      "from_41y6m_to_44y6m": 13.54,
+      "from_44y6m": 12.5
+    },
+    "24": {
+      "less_than_38y6m": 15.0,
+      "from_38y6m_to_41y6m": 14.0,
+      "from_41y6m_to_44y6m": 13.0,
+      "from_44y6m": 12.0
+    },
+    "23": {
+      "less_than_38y6m": 14.38,
+      "from_38y6m_to_41y6m": 13.42,
+      "from_41y6m_to_44y6m": 12.46,
+      "from_44y6m": 11.5
+    },
+    "22": {
+      "less_than_38y6m": 13.75,
+      "from_38y6m_to_41y6m": 12.83,
+      "from_41y6m_to_44y6m": 11.92,
+      "from_44y6m": 11.0
+    },
+    "21": {
+      "less_than_38y6m": 12.57,
+      "from_38y6m_to_41y6m": 12.0,
+      "from_41y6m_to_44y6m": 11.38,
+      "from_44y6m": 10.0
+    },
+    "20": {
+      "less_than_38y6m": 11.0,
+      "from_38y6m_to_41y6m": 10.5,
+      "from_41y6m_to_44y6m": 10.0,
+      "from_44y6m": 9.2
+    },
+    "19": {
+      "less_than_38y6m": 9.78,
+      "from_38y6m_to_41y6m": 9.33,
+      "from_41y6m_to_44y6m": 8.89,
+      "from_44y6m": 8.4
+    },
+    "18": {
+      "less_than_38y6m": 8.8,
+      "from_38y6m_to_41y6m": 8.4,
+      "from_41y6m_to_44y6m": 8.0,
+      "from_44y6m": 7.6
+    },
+    "17": {
+      "less_than_38y6m": 8.0,
+      "from_38y6m_to_41y6m": 7.64,
+      "from_41y6m_to_44y6m": 7.27,
+      "from_44y6m": 6.91
+    },
+    "16": {
+      "less_than_38y6m": 7.33,
+      "from_38y6m_to_41y6m": 7.0,
+      "from_41y6m_to_44y6m": 6.67,
+      "from_44y6m": 6.33
+    },
+    "15": {
+      "less_than_38y6m": 6.77,
+      "from_38y6m_to_41y6m": 6.46,
+      "from_41y6m_to_44y6m": 6.15,
+      "from_44y6m": 5.85
+    },
+    "14": {
+      "less_than_38y6m": 6.29,
+      "from_38y6m_to_41y6m": 6.0,
+      "from_41y6m_to_44y6m": 5.71,
+      "from_44y6m": 5.43
+    },
+    "13": {
+      "less_than_38y6m": 5.87,
+      "from_38y6m_to_41y6m": 5.6,
+      "from_41y6m_to_44y6m": 5.33,
+      "from_44y6m": 5.07
+    },
+    "12": {
+      "less_than_38y6m": 5.5,
+      "from_38y6m_to_41y6m": 5.25,
+      "from_41y6m_to_44y6m": 5.0,
+      "from_44y6m": 4.75
+    },
+    "11": {
+      "less_than_38y6m": 5.18,
+      "from_38y6m_to_41y6m": 4.94,
+      "from_41y6m_to_44y6m": 4.71,
+      "from_44y6m": 4.47
+    },
+    "10": {
+      "less_than_38y6m": 4.89,
+      "from_38y6m_to_41y6m": 4.67,
+      "from_41y6m_to_44y6m": 4.44,
+      "from_44y6m": 4.22
+    },
+    "9": {
+      "less_than_38y6m": 4.63,
+      "from_38y6m_to_41y6m": 4.42,
+      "from_41y6m_to_44y6m": 4.21,
+      "from_44y6m": 4.0
+    },
+    "8": {
+      "less_than_38y6m": 4.4,
+      "from_38y6m_to_41y6m": 4.2,
+      "from_41y6m_to_44y6m": 4.0,
+      "from_44y6m": 3.8
+    },
+    "7": {
+      "less_than_38y6m": 4.19,
+      "from_38y6m_to_41y6m": 4.0,
+      "from_41y6m_to_44y6m": 3.81,
+      "from_44y6m": 3.62
+    },
+    "6": {
+      "less_than_38y6m": 3.75,
+      "from_38y6m_to_41y6m": 3.5,
+      "from_41y6m_to_44y6m": 3.25,
+      "from_44y6m": 3.0
+    },
+    "5": {
+      "less_than_38y6m": 3.13,
+      "from_38y6m_to_41y6m": 2.92,
+      "from_41y6m_to_44y6m": 2.71,
+      "from_44y6m": 2.5
+    },
+    "4": {
+      "less_than_38y6m": 2.5,
+      "from_38y6m_to_41y6m": 2.33,
+      "from_41y6m_to_44y6m": 2.17,
+      "from_44y6m": 2.0
+    },
+    "3": {
+      "less_than_38y6m": 1.88,
+      "from_38y6m_to_41y6m": 1.75,
+      "from_41y6m_to_44y6m": 1.63,
+      "from_44y6m": 1.5
+    },
+    "2": {
+      "less_than_38y6m": 1.25,
+      "from_38y6m_to_41y6m": 1.17,
+      "from_41y6m_to_44y6m": 1.08,
+      "from_44y6m": 1.0
+    },
+    "1": {
+      "less_than_38y6m": 0.63,
+      "from_38y6m_to_41y6m": 0.58,
+      "from_41y6m_to_44y6m": 0.54,
+      "from_44y6m": 0.5
+    }
+  }
+}

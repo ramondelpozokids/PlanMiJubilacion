@@ -4,20 +4,14 @@
 import { differenceInMonths } from 'date-fns';
 import type { ExpedienteDigital } from '@/lib/expediente/types';
 import { getActiveEconomicParams } from '@/lib/rules/economic';
-import {
-  getActiveSsRules,
-  getEarlyCoefficientPerQuarter,
-  resolveOrdinaryRetirement,
-} from '@/lib/rules/ss-rules';
+import { resolveOrdinaryRetirement } from '@/lib/rules/ss-rules';
+import { computeAnticipation } from '@/lib/rules/early-retirement';
 import {
   convenioCostTotal,
   quoteConvenioEspecial,
 } from '@/lib/rules/convenio-especial';
 import { listDocumentedBases } from './from-expediente';
-import {
-  applyEarlyReduction,
-  getRealPensionSnapshot,
-} from './real-pension';
+import { applyEarlyReduction, getRealPensionSnapshot } from './real-pension';
 import { DEFAULT_LIFE_PATH, type LifePathAssumptions } from './life-path';
 import type { MiopStrategy } from '@/lib/optimization/types';
 
@@ -79,7 +73,6 @@ export function evaluateScenario(
   if (!birth || totalMonths <= 0) return null;
 
   const eco = getActiveEconomicParams();
-  const rules = getActiveSsRules();
   const retirementDate = strategy.retirementDate;
   const ord = resolveOrdinaryRetirement({
     birth,
@@ -88,13 +81,9 @@ export function evaluateScenario(
     assumeContinueContributing: strategy.path !== 'freeze',
   }).date;
 
-  const monthsEarly = Math.max(0, differenceInMonths(ord, retirementDate));
+  const monthsEarly = computeAnticipation(ord, retirementDate).monthsEarly;
   const yearsAtRet =
     (totalMonths + Math.max(0, differenceInMonths(retirementDate, asOf))) / 12;
-  const coef = getEarlyCoefficientPerQuarter(yearsAtRet, rules);
-  const quarters = monthsEarly > 0 ? Math.ceil(monthsEarly / 3) : 0;
-  const reductionPercent =
-    monthsEarly > 0 ? Math.min(50, Math.round(quarters * coef * 10000) / 100) : 0;
 
   let lifePath: LifePathAssumptions = { ...DEFAULT_LIFE_PATH };
   if (strategy.subsidioMayores52From) {
@@ -148,8 +137,16 @@ export function evaluateScenario(
   });
 
   let pensionMensual = snap.ordinaryMonthly;
+  let reductionPercent = 0;
   if (pensionMensual != null && monthsEarly > 0) {
-    pensionMensual = applyEarlyReduction(pensionMensual, monthsEarly, yearsAtRet).monthly;
+    const reduced = applyEarlyReduction(pensionMensual, monthsEarly, yearsAtRet, {
+      ordinaryDate: ord,
+      chosenDate: retirementDate,
+      birthDate: birth,
+      rulesYear: retirementDate.getFullYear(),
+    });
+    pensionMensual = reduced.monthly;
+    reductionPercent = reduced.reductionPercent;
   }
 
   const irpf =

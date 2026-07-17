@@ -15,6 +15,8 @@ export interface ConsultationCase {
   founderId: string;
   clientName: string;
   clientNote: string | null;
+  /** ISO YYYY-MM-DD o null */
+  clientBirthDate: string | null;
   expediente: ExpedienteDigital;
   lifePath: LifePathAssumptions;
   completitudScore: number;
@@ -22,11 +24,55 @@ export interface ConsultationCase {
   updatedAt: string;
 }
 
+export type ConsultationCaseMeta = {
+  id: string;
+  clientName: string;
+  clientNote: string | null;
+  clientBirthDate: string | null;
+};
+
+function isoToDmy(iso: string | null | undefined): string | null {
+  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function applyBirthToExpediente(
+  expediente: ExpedienteDigital,
+  birthIso: string | null
+): ExpedienteDigital {
+  const dmy = isoToDmy(birthIso);
+  if (!dmy) return expediente;
+  const existing = expediente.identificacion.fechaNacimiento;
+  return {
+    ...expediente,
+    identificacion: {
+      ...expediente.identificacion,
+      fechaNacimiento: {
+        value: dmy,
+        sources:
+          existing?.sources?.length
+            ? existing.sources
+            : [
+                {
+                  documentId: 'manual',
+                  documentName: 'Datos de consulta (manual)',
+                  documentType: 'otro' as const,
+                  extractedAt: new Date().toISOString(),
+                },
+              ],
+      },
+    },
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 function rowToCase(row: {
   id: string;
   founder_id: string;
   client_name: string;
   client_note: string | null;
+  client_birth_date?: string | null;
   expediente_data: unknown;
   life_path?: unknown;
   completitud_score: number;
@@ -34,11 +80,16 @@ function rowToCase(row: {
   updated_at: string;
 }): ConsultationCase {
   const data = row.expediente_data as ExpedienteDigital;
+  const birth =
+    typeof row.client_birth_date === 'string' && row.client_birth_date
+      ? row.client_birth_date.slice(0, 10)
+      : null;
   return {
     id: row.id,
     founderId: row.founder_id,
     clientName: row.client_name,
     clientNote: row.client_note,
+    clientBirthDate: birth,
     expediente: data?.userId ? data : emptyExpediente(row.founder_id),
     lifePath: parseLifePathJson(row.life_path),
     completitudScore: row.completitud_score,
@@ -82,25 +133,77 @@ export async function getConsultationCase(
 export async function createConsultationCase(
   founderId: string,
   clientName: string,
-  clientNote?: string
+  options?: { clientNote?: string; clientBirthDate?: string | null }
 ): Promise<ConsultationCase> {
   const supabase = await createClient();
-  const expediente = emptyExpediente(founderId);
+  const birth = options?.clientBirthDate?.trim() || null;
+  let expediente = emptyExpediente(founderId);
+  expediente = applyBirthToExpediente(expediente, birth);
+
   const { data, error } = await supabase
     .from('consultation_cases')
     .insert({
       founder_id: founderId,
       client_name: clientName.trim(),
-      client_note: clientNote?.trim() || null,
+      client_note: options?.clientNote?.trim() || null,
+      client_birth_date: birth,
       expediente_data: expediente,
       life_path: DEFAULT_CONSULTATION_LIFE_PATH,
-      completitud_score: 0,
+      completitud_score: expediente.completitud.score,
     })
     .select()
     .single();
 
   if (error) throw new Error(error.message);
   return rowToCase(data);
+}
+
+export async function updateConsultationCase(
+  caseId: string,
+  founderId: string,
+  patch: {
+    clientName: string;
+    clientNote?: string | null;
+    clientBirthDate?: string | null;
+  }
+): Promise<ConsultationCase> {
+  const existing = await getConsultationCase(caseId, founderId);
+  if (!existing) throw new Error('Consulta no encontrada');
+
+  const birth = patch.clientBirthDate?.trim() || null;
+  const expediente = applyBirthToExpediente(existing.expediente, birth);
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('consultation_cases')
+    .update({
+      client_name: patch.clientName.trim(),
+      client_note: patch.clientNote?.trim() || null,
+      client_birth_date: birth,
+      expediente_data: expediente,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', caseId)
+    .eq('founder_id', founderId)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return rowToCase(data);
+}
+
+export async function deleteConsultationCase(
+  caseId: string,
+  founderId: string
+): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('consultation_cases')
+    .delete()
+    .eq('id', caseId)
+    .eq('founder_id', founderId);
+
+  if (error) throw new Error(error.message);
 }
 
 export async function saveConsultationExpediente(

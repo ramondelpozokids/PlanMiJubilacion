@@ -23,6 +23,7 @@ import { ExpedienteSections } from '@/components/features/expediente-sections';
 import { ConsultationRetirementCalendar } from '@/components/features/consultation-retirement-calendar';
 import { ConsultationMiopPodium } from '@/components/features/consultation-miop-podium';
 import { ConsultationClientReport } from '@/components/features/consultation-client-report';
+import { ConsultationCaseEditor } from '@/components/features/consultation-case-editor';
 import { listConsultationCases } from '@/lib/consultation/repository';
 
 export const metadata = { title: 'Consulta asesoría', robots: { index: false } };
@@ -74,14 +75,25 @@ export default async function AsesoriaCasePage({
           {c.clientNote && (
             <p className="mt-2 text-sm text-muted-foreground">{c.clientNote}</p>
           )}
-          <p className="mt-1 text-xs text-muted-foreground">
+          <div className="mt-3 no-print">
+            <ConsultationCaseEditor
+              compact
+              caseMeta={{
+                id: c.id,
+                clientName: c.clientName,
+                clientNote: c.clientNote,
+                clientBirthDate: c.clientBirthDate,
+              }}
+            />
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
             Expediente {c.completitudScore}% · actualizado{' '}
             {new Date(c.updatedAt).toLocaleString('es-ES')}
           </p>
         </div>
         <div className="flex flex-wrap gap-2 print:hidden">
           <PrintButton label="Imprimir informe completo" />
-          <Link href="/asesoria">
+          <Link href="/asesoria/consultas">
             <Button size="sm" variant="secondary">
               Volver
             </Button>
@@ -98,7 +110,12 @@ export default async function AsesoriaCasePage({
 
       <div className="no-print">
         <ConsultationManager
-          cases={allCases.map((x) => ({ id: x.id, clientName: x.clientName }))}
+          cases={allCases.map((x) => ({
+            id: x.id,
+            clientName: x.clientName,
+            clientNote: x.clientNote,
+            clientBirthDate: x.clientBirthDate,
+          }))}
           uploadOnly
         />
         <p className="mt-2 text-xs text-muted-foreground">

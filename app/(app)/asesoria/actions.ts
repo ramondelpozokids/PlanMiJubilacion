@@ -11,12 +11,24 @@ import {
   listConsultationCases,
   getConsultationCase,
   saveConsultationLifePath,
+  updateConsultationCase,
+  deleteConsultationCase,
 } from '@/lib/consultation/repository';
 import { runConsultationPipeline } from '@/lib/consultation/pipeline';
 import type { LifePathAssumptions } from '@/lib/calculator/life-path';
 
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
 const MAX_SIZE = 10 * 1024 * 1024;
+
+function parseBirthDate(raw: string): string | null {
+  const v = raw.trim();
+  if (!v) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) throw new Error('Fecha de nacimiento no válida');
+  const d = new Date(v + 'T12:00:00');
+  if (Number.isNaN(d.getTime())) throw new Error('Fecha de nacimiento no válida');
+  if (d > new Date()) throw new Error('La fecha de nacimiento no puede ser futura');
+  return v;
+}
 
 async function requireFounder() {
   const profile = await getProfile();
@@ -26,16 +38,55 @@ async function requireFounder() {
   return profile;
 }
 
+function revalidateAsesoria(caseId?: string) {
+  revalidatePath('/asesoria');
+  revalidatePath('/asesoria/consultas');
+  if (caseId) revalidatePath(`/asesoria/${caseId}`);
+}
+
 export async function createCaseAction(formData: FormData) {
   const profile = await requireFounder();
   const clientName = String(formData.get('clientName') ?? '').trim();
   const clientNote = String(formData.get('clientNote') ?? '').trim();
+  const clientBirthDate = parseBirthDate(String(formData.get('clientBirthDate') ?? ''));
 
   if (clientName.length < 2) throw new Error('Indica el nombre de la persona');
 
-  const c = await createConsultationCase(profile.id, clientName, clientNote || undefined);
-  revalidatePath('/asesoria');
+  const c = await createConsultationCase(profile.id, clientName, {
+    clientNote: clientNote || undefined,
+    clientBirthDate,
+  });
+  revalidateAsesoria();
   return { caseId: c.id };
+}
+
+export async function updateCaseAction(formData: FormData) {
+  const profile = await requireFounder();
+  const caseId = String(formData.get('caseId') ?? '');
+  const clientName = String(formData.get('clientName') ?? '').trim();
+  const clientNote = String(formData.get('clientNote') ?? '').trim();
+  const clientBirthDate = parseBirthDate(String(formData.get('clientBirthDate') ?? ''));
+
+  if (!caseId) throw new Error('Consulta no indicada');
+  if (clientName.length < 2) throw new Error('Indica el nombre de la persona');
+
+  await updateConsultationCase(caseId, profile.id, {
+    clientName,
+    clientNote: clientNote || null,
+    clientBirthDate,
+  });
+  revalidateAsesoria(caseId);
+  return { success: true };
+}
+
+export async function deleteCaseAction(formData: FormData) {
+  const profile = await requireFounder();
+  const caseId = String(formData.get('caseId') ?? '');
+  if (!caseId) throw new Error('Consulta no indicada');
+
+  await deleteConsultationCase(caseId, profile.id);
+  revalidateAsesoria();
+  return { deleted: true as const };
 }
 
 export async function uploadConsultationDocumentAction(formData: FormData) {
@@ -92,8 +143,7 @@ export async function uploadConsultationDocumentAction(formData: FormData) {
       .update({ ocr_status: 'completed' })
       .eq('id', doc.id);
 
-    revalidatePath('/asesoria');
-    revalidatePath(`/asesoria/${caseId}`);
+    revalidateAsesoria(caseId);
     return { success: true, completitud: expediente.completitud.score };
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Error al procesar';
@@ -128,7 +178,7 @@ export async function updateLifePathAction(caseId: string, formData: FormData) {
   };
 
   await saveConsultationLifePath(caseId, profile.id, lifePath);
-  revalidatePath(`/asesoria/${caseId}`);
+  revalidateAsesoria(caseId);
   return { success: true };
 }
 
@@ -146,7 +196,6 @@ export async function saveConsultationInternationalAction(caseId: string, formDa
   existing.expediente.updatedAt = new Date().toISOString();
   await saveConsultationExpediente(caseId, profile.id, existing.expediente);
 
-  revalidatePath(`/asesoria/${caseId}`);
-  revalidatePath('/asesoria');
+  revalidateAsesoria(caseId);
   return { success: true };
 }

@@ -28,12 +28,16 @@ function NavLink({
   href,
   label,
   pathname,
+  exact,
 }: {
   href: string;
   label: string;
   pathname: string | null;
+  exact?: boolean;
 }) {
-  const active = pathname === href || (pathname?.startsWith(href + '/') ?? false);
+  const active = exact
+    ? pathname === href
+    : pathname === href || (pathname?.startsWith(href + '/') ?? false);
   return (
     <Link
       href={href}
@@ -86,11 +90,23 @@ export function AppSidebar({
             Herramientas
           </p>
           <div className="space-y-1">
-            {isFounder && (
+            {isFounder ? (
               <>
-                <NavLink href="/asesoria" label="Asesoría (gratis)" pathname={pathname} />
+                <NavLink
+                  href="/asesoria"
+                  label="Asesoría gratuita"
+                  pathname={pathname}
+                  exact
+                />
+                <NavLink
+                  href="/asesoria/consultas"
+                  label="Consultas terceros"
+                  pathname={pathname}
+                />
                 <NavLink href="/asesoria/mensajes" label="Bandeja contacto" pathname={pathname} />
               </>
+            ) : (
+              <NavLink href="/asesoria" label="Asesoría gratuita" pathname={pathname} exact />
             )}
             {TOOL_ITEMS.map((item) => (
               <NavLink key={item.href} {...item} pathname={pathname} />

@@ -9,10 +9,10 @@ import type { ExpedienteDigital } from '@/lib/expediente/types';
 import {
   formatAgeYearsMonths,
   getActiveSsRules,
-  getEarlyCoefficientPerQuarter,
   monthsToYearsMonths,
   resolveOrdinaryRetirement,
 } from '@/lib/rules/ss-rules';
+import { computeAnticipation } from '@/lib/rules/early-retirement';
 import type { PensionResult } from './pension';
 import {
   applyEarlyReduction,
@@ -33,10 +33,14 @@ export interface EarlyScenario {
   retirementAge: number;
   retirementDate: Date;
   monthsEarly: number;
+  /** @deprecated Los coeficientes oficiales son mensuales (tabla BOE), no por trimestre. */
   quartersEarly: number;
   reductionPercent: number;
+  /** @deprecated Usar reductionPercent (celda oficial de la tabla). */
   coefficientPerQuarterPercent: number;
   estimatedMonthly: number | null;
+  legalBasis?: string;
+  careerBracketLabel?: string;
 }
 
 export interface RetirementOutlook {
@@ -141,8 +145,9 @@ export function buildRetirementOutlook(
 
   if (!birth || totalMonths <= 0) return null;
 
-  const ageTodayExact = ageExactYears(birth, asOf);
-  const ageToday = ageAt(birth, asOf);
+  const birthDate = birth;
+  const ageTodayExact = ageExactYears(birthDate, asOf);
+  const ageToday = ageAt(birthDate, asOf);
 
   // Subsidio +52 cotiza → proyectamos carrera (no freeze)
   const resolved = resolveOrdinaryRetirement({
@@ -171,13 +176,12 @@ export function buildRetirementOutlook(
   }
 
   const yearsAtOrdinary = resolved.monthsAtRetirement / 12;
-  const coef = getEarlyCoefficientPerQuarter(yearsAtOrdinary, rules);
   const real = getRealPensionSnapshot(expediente, {
     lifePath,
     retirementDate: ordinaryDate,
     asOf,
   });
-  const birthIso = format(birth, 'yyyy-MM-dd');
+  const birthIso = format(birthDate, 'yyyy-MM-dd');
 
   const ordinaryMonthly = real.ordinaryMonthly;
   const ordinaryResult: PensionResult | null =
@@ -197,27 +201,53 @@ export function buildRetirementOutlook(
         }
       : null;
 
-  function pensionAt(monthsEarly: number): number | null {
-    if (ordinaryMonthly == null) return null;
-    return applyEarlyReduction(ordinaryMonthly, monthsEarly, yearsAtOrdinary).monthly;
+  function pensionAt(retirementDate: Date): {
+    monthly: number | null;
+    reductionPercent: number;
+    monthsEarly: number;
+    legalBasis?: string;
+    bracketLabel?: string;
+  } {
+    if (ordinaryMonthly == null) {
+      return { monthly: null, reductionPercent: 0, monthsEarly: 0 };
+    }
+    const anticipation = computeAnticipation(ordinaryDate, retirementDate);
+    const reduced = applyEarlyReduction(
+      ordinaryMonthly,
+      anticipation.monthsEarly,
+      yearsAtOrdinary,
+      {
+        ordinaryDate,
+        chosenDate: retirementDate,
+        birthDate: birthDate,
+        rulesYear: retirementDate.getFullYear(),
+      }
+    );
+    return {
+      monthly: reduced.monthly,
+      reductionPercent: reduced.reductionPercent,
+      monthsEarly: anticipation.monthsEarly,
+      legalBasis: reduced.detail?.resolution.legalNormSummary,
+      bracketLabel: reduced.detail?.resolution.bracket.label,
+    };
   }
 
-  const earlyAges = [63, 64, 65].filter((a) => addAgeYears(birth, a) < ordinaryDate);
+  const earlyAges = [63, 64, 65].filter((a) => addAgeYears(birthDate, a) < ordinaryDate);
 
   const scenarios: EarlyScenario[] = earlyAges.map((a) => {
-    const d = addAgeYears(birth, a);
-    const monthsEarly = Math.max(0, differenceInMonths(ordinaryDate, d));
-    const quarters = Math.ceil(monthsEarly / 3);
-    const reductionPercent = Math.min(50, Math.round(quarters * coef * 10000) / 100);
+    const d = addAgeYears(birthDate, a);
+    const p = pensionAt(d);
     return {
       label: `A los ${a} años`,
       retirementAge: a,
       retirementDate: d,
-      monthsEarly,
-      quartersEarly: quarters,
-      reductionPercent,
-      coefficientPerQuarterPercent: Math.round(coef * 10000) / 100,
-      estimatedMonthly: pensionAt(monthsEarly),
+      monthsEarly: p.monthsEarly,
+      quartersEarly: Math.ceil(p.monthsEarly / 3),
+      reductionPercent: p.reductionPercent,
+      coefficientPerQuarterPercent: p.reductionPercent,
+      estimatedMonthly: p.monthly,
+      legalBasis: p.legalBasis,
+      careerBracketLabel: p.bracketLabel,
     };
   });
 

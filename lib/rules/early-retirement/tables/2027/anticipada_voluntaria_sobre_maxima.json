@@ -1,0 +1,161 @@
+{
+  "year": 2027,
+  "modality": "voluntary_over_max",
+  "legalBasis": "LGSS DT 34ª + art. 210.3 (aplicación gradual cuando la pensión teórica supera la máxima)",
+  "boeRef": "BOE-A-2021-21652",
+  "unit": "percent",
+  "note": "Solo aplicable si la pensión teórica supera el límite máximo. Transición 2024–2033.",
+  "maxMonths": 24,
+  "brackets": [
+    "less_than_38y6m",
+    "from_38y6m_to_41y6m",
+    "from_41y6m_to_44y6m",
+    "from_44y6m"
+  ],
+  "byMonthsEarly": {
+    "1": {
+      "less_than_38y6m": 1.6,
+      "from_38y6m_to_41y6m": 1.54,
+      "from_41y6m_to_44y6m": 1.48,
+      "from_44y6m": 1.42
+    },
+    "2": {
+      "less_than_38y6m": 1.65,
+      "from_38y6m_to_41y6m": 1.59,
+      "from_41y6m_to_44y6m": 1.53,
+      "from_44y6m": 1.47
+    },
+    "3": {
+      "less_than_38y6m": 1.71,
+      "from_38y6m_to_41y6m": 1.64,
+      "from_41y6m_to_44y6m": 1.58,
+      "from_44y6m": 1.52
+    },
+    "4": {
+      "less_than_38y6m": 2.07,
+      "from_38y6m_to_41y6m": 2.0,
+      "from_41y6m_to_44y6m": 1.93,
+      "from_44y6m": 1.87
+    },
+    "5": {
+      "less_than_38y6m": 2.13,
+      "from_38y6m_to_41y6m": 2.06,
+      "from_41y6m_to_44y6m": 1.99,
+      "from_44y6m": 1.92
+    },
+    "6": {
+      "less_than_38y6m": 2.2,
+      "from_38y6m_to_41y6m": 2.13,
+      "from_41y6m_to_44y6m": 2.06,
+      "from_44y6m": 1.98
+    },
+    "7": {
+      "less_than_38y6m": 2.58,
+      "from_38y6m_to_41y6m": 2.5,
+      "from_41y6m_to_44y6m": 2.42,
+      "from_44y6m": 2.35
+    },
+    "8": {
+      "less_than_38y6m": 2.66,
+      "from_38y6m_to_41y6m": 2.58,
+      "from_41y6m_to_44y6m": 2.5,
+      "from_44y6m": 2.42
+    },
+    "9": {
+      "less_than_38y6m": 2.75,
+      "from_38y6m_to_41y6m": 2.67,
+      "from_41y6m_to_44y6m": 2.58,
+      "from_44y6m": 2.5
+    },
+    "10": {
+      "less_than_38y6m": 3.16,
+      "from_38y6m_to_41y6m": 3.07,
+      "from_41y6m_to_44y6m": 2.98,
+      "from_44y6m": 2.89
+    },
+    "11": {
+      "less_than_38y6m": 3.27,
+      "from_38y6m_to_41y6m": 3.18,
+      "from_41y6m_to_44y6m": 3.08,
+      "from_44y6m": 2.99
+    },
+    "12": {
+      "less_than_38y6m": 3.4,
+      "from_38y6m_to_41y6m": 3.3,
+      "from_41y6m_to_44y6m": 3.2,
+      "from_44y6m": 3.1
+    },
+    "13": {
+      "less_than_38y6m": 3.85,
+      "from_38y6m_to_41y6m": 3.74,
+      "from_41y6m_to_44y6m": 3.63,
+      "from_44y6m": 3.53
+    },
+    "14": {
+      "less_than_38y6m": 4.02,
+      "from_38y6m_to_41y6m": 3.9,
+      "from_41y6m_to_44y6m": 3.78,
+      "from_44y6m": 3.67
+    },
+    "15": {
+      "less_than_38y6m": 4.21,
+      "from_38y6m_to_41y6m": 4.08,
+      "from_41y6m_to_44y6m": 3.96,
+      "from_44y6m": 3.84
+    },
+    "16": {
+      "less_than_38y6m": 4.73,
+      "from_38y6m_to_41y6m": 4.6,
+      "from_41y6m_to_44y6m": 4.47,
+      "from_44y6m": 4.33
+    },
+    "17": {
+      "less_than_38y6m": 5.0,
+      "from_38y6m_to_41y6m": 4.86,
+      "from_41y6m_to_44y6m": 4.71,
+      "from_44y6m": 4.56
+    },
+    "18": {
+      "less_than_38y6m": 5.32,
+      "from_38y6m_to_41y6m": 5.16,
+      "from_41y6m_to_44y6m": 5.0,
+      "from_44y6m": 4.84
+    },
+    "19": {
+      "less_than_38y6m": 6.01,
+      "from_38y6m_to_41y6m": 5.83,
+      "from_41y6m_to_44y6m": 5.66,
+      "from_44y6m": 5.46
+    },
+    "20": {
+      "less_than_38y6m": 6.5,
+      "from_38y6m_to_41y6m": 6.3,
+      "from_41y6m_to_44y6m": 6.1,
+      "from_44y6m": 5.78
+    },
+    "21": {
+      "less_than_38y6m": 7.13,
+      "from_38y6m_to_41y6m": 6.9,
+      "from_41y6m_to_44y6m": 6.67,
+      "from_44y6m": 6.1
+    },
+    "22": {
+      "less_than_38y6m": 8.27,
+      "from_38y6m_to_41y6m": 8.0,
+      "from_41y6m_to_44y6m": 7.73,
+      "from_44y6m": 6.8
+    },
+    "23": {
+      "less_than_38y6m": 9.44,
+      "from_38y6m_to_41y6m": 9.0,
+      "from_41y6m_to_44y6m": 8.4,
+      "from_44y6m": 7.2
+    },
+    "24": {
+      "less_than_38y6m": 10.8,
+      "from_38y6m_to_41y6m": 10.0,
+      "from_41y6m_to_44y6m": 9.2,
+      "from_44y6m": 7.6
+    }
+  }
+}

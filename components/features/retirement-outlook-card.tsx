@@ -138,8 +138,7 @@ export function RetirementOutlookCard({
                     <th className="py-2 pr-2">Momento</th>
                     <th className="py-2 pr-2">Fecha</th>
                     <th className="py-2 pr-2">Meses antes</th>
-                    <th className="py-2 pr-2">Trimestres</th>
-                    <th className="py-2 pr-2">Reducción</th>
+                    <th className="py-2 pr-2">Reducción (BOE)</th>
                     <th className="py-2">Pensión est.</th>
                   </tr>
                 </thead>
@@ -151,12 +150,13 @@ export function RetirementOutlookCard({
                         {format(s.retirementDate, 'dd/MM/yyyy', { locale: es })}
                       </td>
                       <td className="py-2 pr-2">{s.monthsEarly}</td>
-                      <td className="py-2 pr-2">{s.quartersEarly}</td>
                       <td className="py-2 pr-2 text-warning font-medium">
                         −{s.reductionPercent}%
-                        <span className="block text-xs font-normal text-muted-foreground">
-                          ({s.coefficientPerQuarterPercent}% por trimestre)
-                        </span>
+                        {s.careerBracketLabel && (
+                          <span className="block text-xs font-normal text-muted-foreground">
+                            {s.careerBracketLabel}
+                          </span>
+                        )}
                       </td>
                       <td className="py-2">
                         {s.estimatedMonthly != null
