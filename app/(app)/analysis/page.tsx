@@ -29,6 +29,16 @@ export const metadata = { title: 'Expediente', robots: { index: false } };
 
 export default async function AnalysisPage() {
   const profile = await getProfile();
+  if (!profile) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center text-sm text-muted-foreground">
+          Debes iniciar sesión para ver el expediente.
+        </CardContent>
+      </Card>
+    );
+  }
+
   const supabase = await createClient();
 
   const [{ data: documentsData }, expedienteRaw] = await Promise.all([
@@ -37,9 +47,9 @@ export default async function AnalysisPage() {
       .select(
         'id, name, document_type, ocr_status, created_at, ocr_error, ocr_data, ocr_confidence'
       )
-      .eq('user_id', profile!.id)
+      .eq('user_id', profile.id)
       .order('created_at', { ascending: false }),
-    loadExpediente(profile!.id),
+    loadExpediente(profile.id),
   ]);
 
   const documents = (documentsData ?? []) as Document[];
@@ -48,12 +58,22 @@ export default async function AnalysisPage() {
   const stuckCount = documents.filter(
     (d) => d.ocr_status === 'processing' || d.ocr_status === 'pending'
   ).length;
-  const report =
-    expediente && expediente.documentIds.length > 0
-      ? buildExpedienteReport(expediente)
-      : null;
+
+  let report = null;
+  let outlook = null;
+  try {
+    report =
+      expediente && expediente.documentIds.length > 0
+        ? buildExpedienteReport(expediente)
+        : null;
+    outlook =
+      expediente && expediente.documentIds.length > 0
+        ? buildRetirementOutlook(expediente)
+        : null;
+  } catch (err) {
+    console.error('analysis page report/outlook:', err);
+  }
   const hasExpediente = Boolean(expediente && expediente.documentIds.length > 0);
-  const outlook = hasExpediente && expediente ? buildRetirementOutlook(expediente) : null;
 
   return (
     <div className="space-y-6">

@@ -123,92 +123,102 @@ export async function uploadDocumentOnly(formData: FormData) {
 
 /** Sube y procesa en una sola acción (server-side). */
 export async function uploadAndProcessDocument(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('No autenticado');
-
-  const file = formData.get('file') as File;
-  const documentType = formData.get('documentType') as string;
-
-  if (!file || file.size === 0) throw new Error('Archivo vacío');
-  if (!ALLOWED_TYPES.includes(file.type)) throw new Error('Formato no soportado (PDF, JPG, PNG, WEBP)');
-  if (file.size > MAX_SIZE) throw new Error('Archivo demasiado grande (máx. 10 MB)');
-
-  const validation = uploadSchema.safeParse({ documentType });
-  if (!validation.success) throw new Error('Tipo de documento inválido');
-
-  let docId: string | null = null;
-
   try {
-    const storagePath = await uploadDocument(file, user.id);
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { success: false as const, error: 'No autenticado' };
 
-    const { data: doc, error: docError } = await supabase
-      .from('documents')
-      .insert({
-        user_id: user.id,
-        name: file.name,
-        mime_type: file.type,
-        size_bytes: file.size,
-        storage_path: storagePath,
-        document_type: validation.data.documentType,
-        ocr_status: 'processing',
-      })
-      .select()
-      .single();
+    const file = formData.get('file') as File;
+    const documentType = formData.get('documentType') as string;
 
-    if (docError) throw docError;
-    docId = doc.id;
-
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const result = await runDocumentPipeline({
-      userId: user.id,
-      documentId: doc.id,
-      documentName: file.name,
-      documentTypeHint: validation.data.documentType,
-      fileBuffer: buffer,
-      mimeType: file.type,
-    });
-
-    const { error: updateError } = await supabase
-      .from('documents')
-      .update({
-        ocr_status: 'completed',
-        ocr_data: result.ocrData,
-        ocr_confidence: result.ocrData.confidence,
-        document_type: result.detectedType,
-      })
-      .eq('id', doc.id);
-
-    if (updateError) throw updateError;
-
-    revalidatePath('/dashboard');
-    revalidatePath('/analysis');
-    revalidatePath('/upload');
-
-    return {
-      success: true,
-      documentId: doc.id,
-      detectedType: result.detectedType,
-      expedienteScore: result.expediente.completitud.score,
-      fieldsExtracted: countFullExtractionFields(result.ocrData),
-      discrepancies: result.expediente.discrepancies.length,
-    };
-  } catch (error) {
-    console.error('Error procesando documento:', error);
-
-    if (docId) {
-      await supabase
-        .from('documents')
-        .update({
-          ocr_status: 'failed',
-          ocr_error: friendlyError(error),
-        })
-        .eq('id', docId);
+    if (!file || file.size === 0) return { success: false as const, error: 'Archivo vacío' };
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return { success: false as const, error: 'Formato no soportado (PDF, JPG, PNG, WEBP)' };
+    }
+    if (file.size > MAX_SIZE) {
+      return { success: false as const, error: 'Archivo demasiado grande (máx. 10 MB)' };
     }
 
-    throw new Error(friendlyError(error));
+    const validation = uploadSchema.safeParse({ documentType });
+    if (!validation.success) {
+      return { success: false as const, error: 'Tipo de documento inválido' };
+    }
+
+    let docId: string | null = null;
+
+    try {
+      const storagePath = await uploadDocument(file, user.id);
+
+      const { data: doc, error: docError } = await supabase
+        .from('documents')
+        .insert({
+          user_id: user.id,
+          name: file.name,
+          mime_type: file.type,
+          size_bytes: file.size,
+          storage_path: storagePath,
+          document_type: validation.data.documentType,
+          ocr_status: 'processing',
+        })
+        .select()
+        .single();
+
+      if (docError) throw new Error(docError.message);
+      docId = doc.id;
+
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const result = await runDocumentPipeline({
+        userId: user.id,
+        documentId: doc.id,
+        documentName: file.name,
+        documentTypeHint: validation.data.documentType,
+        fileBuffer: buffer,
+        mimeType: file.type,
+      });
+
+      const { error: updateError } = await supabase
+        .from('documents')
+        .update({
+          ocr_status: 'completed',
+          ocr_data: result.ocrData,
+          ocr_confidence: result.ocrData.confidence,
+          document_type: result.detectedType,
+        })
+        .eq('id', doc.id);
+
+      if (updateError) throw new Error(updateError.message);
+
+      revalidatePath('/dashboard');
+      revalidatePath('/analysis');
+      revalidatePath('/upload');
+
+      return {
+        success: true as const,
+        documentId: doc.id,
+        detectedType: result.detectedType,
+        expedienteScore: result.expediente.completitud.score,
+        fieldsExtracted: countFullExtractionFields(result.ocrData),
+        discrepancies: result.expediente.discrepancies.length,
+      };
+    } catch (error) {
+      console.error('Error procesando documento:', error);
+
+      if (docId) {
+        await supabase
+          .from('documents')
+          .update({
+            ocr_status: 'failed',
+            ocr_error: friendlyError(error),
+          })
+          .eq('id', docId);
+      }
+
+      return { success: false as const, error: friendlyError(error) };
+    }
+  } catch (error) {
+    return { success: false as const, error: friendlyError(error) };
   }
 }
 

@@ -183,7 +183,11 @@ export function AsesoriaSimulationWizard({
     }
     startTransition(async () => {
       try {
-        await saveWizardBirthDateAction(draft.birthDate);
+        const saved = await saveWizardBirthDateAction(draft.birthDate);
+        if (!saved.success) {
+          toast.error(saved.error);
+          return;
+        }
         toast.success('Fecha de nacimiento guardada');
         router.refresh();
         next();
@@ -199,6 +203,9 @@ export function AsesoriaSimulationWizard({
     fd.set('file', file);
     fd.set('kind', kind);
     const res = await uploadWizardDocumentAction(fd);
+    if (!res.success) {
+      throw new Error(res.error);
+    }
     if (res.needsClientEnqueue) {
       setUploadMsg('Analizando con IA…');
       await enqueueProcess(res.documentId);
