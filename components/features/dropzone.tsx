@@ -54,8 +54,11 @@ export function Dropzone() {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('documentType', documentType);
-        const { documentId } = await uploadDocumentOnly(formData);
-        ids.push(documentId);
+        const uploaded = await uploadDocumentOnly(formData);
+        if (!uploaded.success) {
+          throw new Error(uploaded.error || 'Error al subir');
+        }
+        ids.push(uploaded.documentId);
       }
 
       setProgress('Encolando análisis IA…');

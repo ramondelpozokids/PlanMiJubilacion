@@ -46,6 +46,10 @@ export function DocumentList({ documents }: { documents: DocumentRow[] }) {
       try {
         toast.info(`Leyendo PDF completo: "${name}"… (puede tardar 1-2 min)`);
         const result = await reprocessDocumentById(id);
+        if (!result.success) {
+          toast.error(result.error || 'Error al releer');
+          return;
+        }
         router.refresh();
         if (result.skipped) {
           toast.success('Documento ya procesado (mismo archivo)');
@@ -60,7 +64,12 @@ export function DocumentList({ documents }: { documents: DocumentRow[] }) {
           );
         }
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Error al releer');
+        const raw = e instanceof Error ? e.message : String(e);
+        toast.error(
+          /Server Components render|omitted in production|digest/i.test(raw)
+            ? 'Error al releer en el servidor. Revisa el detalle bajo el documento o los logs de Vercel.'
+            : raw || 'Error al releer'
+        );
       }
     });
   };

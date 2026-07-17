@@ -69,19 +69,27 @@ export async function uploadDocumentOnly(formData: FormData) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) throw new Error('No autenticado');
+    if (!user) {
+      return { success: false as const, error: 'No autenticado' };
+    }
 
     const file = formData.get('file') as File;
     const documentType = formData.get('documentType') as string;
 
-    if (!file || file.size === 0) throw new Error('Archivo vacío');
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      throw new Error('Formato no soportado (PDF, JPG, PNG, WEBP)');
+    if (!file || file.size === 0) {
+      return { success: false as const, error: 'Archivo vacío' };
     }
-    if (file.size > MAX_SIZE) throw new Error('Archivo demasiado grande (máx. 10 MB)');
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return { success: false as const, error: 'Formato no soportado (PDF, JPG, PNG, WEBP)' };
+    }
+    if (file.size > MAX_SIZE) {
+      return { success: false as const, error: 'Archivo demasiado grande (máx. 10 MB)' };
+    }
 
     const validation = uploadSchema.safeParse({ documentType });
-    if (!validation.success) throw new Error('Tipo de documento inválido');
+    if (!validation.success) {
+      return { success: false as const, error: 'Tipo de documento inválido' };
+    }
 
     const storagePath = await uploadDocument(file, user.id);
 
@@ -99,15 +107,17 @@ export async function uploadDocumentOnly(formData: FormData) {
       .select()
       .single();
 
-    if (docError) throw new Error(docError.message);
+    if (docError) {
+      return { success: false as const, error: friendlyError(docError) };
+    }
 
     revalidatePath('/upload');
     revalidatePath('/analysis');
 
-    return { success: true, documentId: doc.id, status: 'pending' as const };
+    return { success: true as const, documentId: doc.id, status: 'pending' as const };
   } catch (error) {
     console.error('uploadDocumentOnly:', error);
-    throw new Error(friendlyError(error));
+    return { success: false as const, error: friendlyError(error) };
   }
 }
 
@@ -203,29 +213,39 @@ export async function uploadAndProcessDocument(formData: FormData) {
 }
 
 export async function reprocessDocumentById(documentId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('No autenticado');
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false as const, error: 'No autenticado' };
+    }
 
-  const { processQueuedDocument } = await import('@/lib/ocr/queue');
-  const result = await processQueuedDocument(user.id, documentId, { force: true });
+    const { processQueuedDocument } = await import('@/lib/ocr/queue');
+    const result = await processQueuedDocument(user.id, documentId, { force: true });
 
-  if (!result.success) {
-    throw new Error(result.error ?? 'Error al reprocesar');
+    if (!result.success) {
+      return {
+        success: false as const,
+        error: friendlyError(result.error ?? 'Error al reprocesar'),
+      };
+    }
+
+    revalidatePath('/dashboard');
+    revalidatePath('/analysis');
+    revalidatePath('/upload');
+    revalidatePath('/comparator');
+
+    return {
+      success: true as const,
+      skipped: result.skipped ?? false,
+      detectedType: result.detectedType,
+      expedienteScore: result.expedienteScore,
+      discrepancies: result.discrepancies,
+    };
+  } catch (error) {
+    console.error('reprocessDocumentById:', error);
+    return { success: false as const, error: friendlyError(error) };
   }
-
-  revalidatePath('/dashboard');
-  revalidatePath('/analysis');
-  revalidatePath('/upload');
-  revalidatePath('/comparator');
-
-  return {
-    success: true,
-    skipped: result.skipped ?? false,
-    detectedType: result.detectedType,
-    expedienteScore: result.expedienteScore,
-    discrepancies: result.discrepancies,
-  };
 }
