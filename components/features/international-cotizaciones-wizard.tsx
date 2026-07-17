@@ -81,7 +81,11 @@ export function InternationalCotizacionesWizard({
         fd.set('periodsJson', JSON.stringify(periods));
       }
       if (caseId) {
-        await saveConsultationInternationalAction(caseId, fd);
+        const res = await saveConsultationInternationalAction(caseId, fd);
+        if (!res.success) {
+          toast.error(res.error);
+          return;
+        }
       } else {
         await saveInternationalCotizacionesAction(fd);
       }

@@ -25,6 +25,10 @@ export function ConsultationManager({
     try {
       const fd = new FormData(form);
       const res = await createCaseAction(fd);
+      if (!res.success) {
+        toast.error(res.error);
+        return;
+      }
       toast.success('Consulta creada');
       setCaseId(res.caseId);
       form.reset();
@@ -48,6 +52,10 @@ export function ConsultationManager({
       const fd = new FormData(form);
       fd.set('caseId', caseId);
       const res = await uploadConsultationDocumentAction(fd);
+      if (!res.success) {
+        toast.error(res.error);
+        return;
+      }
       toast.success(`Documento procesado · expediente ${res.completitud}%`);
       form.reset();
     } catch (err) {

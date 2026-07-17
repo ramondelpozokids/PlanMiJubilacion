@@ -71,22 +71,38 @@ const nextConfig = {
       'pdf-parse',
       'pdfjs-dist',
       '@napi-rs/canvas',
+      'unpdf',
       '@google-cloud/documentai',
     ],
   },
   // Incluir binarios nativos de canvas + worker en el deploy serverless de Vercel
   outputFileTracingIncludes: {
     '/api/documents/process': [
+      './node_modules/unpdf/**/*',
       './node_modules/pdf-parse/**/*',
       './node_modules/pdfjs-dist/**/*',
       './node_modules/@napi-rs/canvas/**/*',
     ],
     '/upload': [
+      './node_modules/unpdf/**/*',
       './node_modules/pdf-parse/**/*',
       './node_modules/pdfjs-dist/**/*',
       './node_modules/@napi-rs/canvas/**/*',
     ],
     '/analysis': [
+      './node_modules/unpdf/**/*',
+      './node_modules/pdf-parse/**/*',
+      './node_modules/pdfjs-dist/**/*',
+      './node_modules/@napi-rs/canvas/**/*',
+    ],
+    '/asesoria': [
+      './node_modules/unpdf/**/*',
+      './node_modules/pdf-parse/**/*',
+      './node_modules/pdfjs-dist/**/*',
+      './node_modules/@napi-rs/canvas/**/*',
+    ],
+    '/asesoria/consultas': [
+      './node_modules/unpdf/**/*',
       './node_modules/pdf-parse/**/*',
       './node_modules/pdfjs-dist/**/*',
       './node_modules/@napi-rs/canvas/**/*',

@@ -22,7 +22,11 @@ export function ConsultationLifePathForm({
     setPending(true);
     try {
       const fd = new FormData(e.currentTarget);
-      await updateLifePathAction(caseId, fd);
+      const res = await updateLifePathAction(caseId, fd);
+      if (!res.success) {
+        toast.error(res.error);
+        return;
+      }
       toast.success('Escenario actualizado');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error');

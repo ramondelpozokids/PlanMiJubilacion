@@ -35,7 +35,11 @@ export function ConsultationCaseEditor({
     const fd = new FormData(e.currentTarget);
     startTransition(async () => {
       try {
-        await updateCaseAction(fd);
+        const res = await updateCaseAction(fd);
+        if (!res.success) {
+          toast.error(res.error);
+          return;
+        }
         toast.success('Consulta actualizada');
         setEditing(false);
         router.refresh();
@@ -57,7 +61,11 @@ export function ConsultationCaseEditor({
     fd.set('caseId', caseMeta.id);
     startTransition(async () => {
       try {
-        await deleteCaseAction(fd);
+        const res = await deleteCaseAction(fd);
+        if (!res.success) {
+          toast.error(res.error);
+          return;
+        }
         toast.success('Consulta eliminada');
         router.push('/asesoria/consultas');
         router.refresh();
