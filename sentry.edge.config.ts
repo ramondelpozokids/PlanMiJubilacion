@@ -1,6 +1,10 @@
 import * as Sentry from '@sentry/nextjs';
 
-Sentry.init({
-  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-  tracesSampleRate: 0.1,
-});
+// Solo inicializar si hay DSN — evita tumbar Edge middleware sin config
+const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN?.trim();
+if (dsn) {
+  Sentry.init({
+    dsn,
+    tracesSampleRate: 0.1,
+  });
+}

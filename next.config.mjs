@@ -73,34 +73,6 @@ const nextConfig = {
       '@napi-rs/canvas',
       '@google-cloud/documentai',
     ],
-    // Next 14: tracing includes va dentro de experimental
-    outputFileTracingIncludes: {
-      '/api/documents/process': [
-        './node_modules/pdf-parse/**/*',
-        './node_modules/pdfjs-dist/**/*',
-        './node_modules/@napi-rs/canvas/**/*',
-      ],
-      '/upload': [
-        './node_modules/pdf-parse/**/*',
-        './node_modules/pdfjs-dist/**/*',
-        './node_modules/@napi-rs/canvas/**/*',
-      ],
-      '/analysis': [
-        './node_modules/pdf-parse/**/*',
-        './node_modules/pdfjs-dist/**/*',
-        './node_modules/@napi-rs/canvas/**/*',
-      ],
-      '/asesoria': [
-        './node_modules/pdf-parse/**/*',
-        './node_modules/pdfjs-dist/**/*',
-        './node_modules/@napi-rs/canvas/**/*',
-      ],
-      '/asesoria/consultas': [
-        './node_modules/pdf-parse/**/*',
-        './node_modules/pdfjs-dist/**/*',
-        './node_modules/@napi-rs/canvas/**/*',
-      ],
-    },
   },
   images: {
     remotePatterns: [
