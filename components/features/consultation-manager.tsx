@@ -20,13 +20,14 @@ export function ConsultationManager({
 
   async function onCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const form = e.currentTarget;
     setPending(true);
     try {
-      const fd = new FormData(e.currentTarget);
+      const fd = new FormData(form);
       const res = await createCaseAction(fd);
       toast.success('Consulta creada');
       setCaseId(res.caseId);
-      e.currentTarget.reset();
+      form.reset();
       window.location.href = `/asesoria/${res.caseId}`;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error');
@@ -41,13 +42,14 @@ export function ConsultationManager({
       toast.error('Crea o selecciona una consulta primero');
       return;
     }
+    const form = e.currentTarget;
     setPending(true);
     try {
-      const fd = new FormData(e.currentTarget);
+      const fd = new FormData(form);
       fd.set('caseId', caseId);
       const res = await uploadConsultationDocumentAction(fd);
       toast.success(`Documento procesado · expediente ${res.completitud}%`);
-      e.currentTarget.reset();
+      form.reset();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error');
     } finally {
