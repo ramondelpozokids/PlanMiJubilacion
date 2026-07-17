@@ -34,7 +34,7 @@ export const PLANMI_PRODUCTS: PlanMiProduct[] = [
     shortLabel: 'Prestaciones',
     tagline: 'Todas las prestaciones de la Seguridad Social',
     href: '/prestaciones',
-    status: 'expansion',
+    status: 'activo',
     accent: 'from-success/15 to-transparent',
   },
   {
@@ -43,7 +43,7 @@ export const PLANMI_PRODUCTS: PlanMiProduct[] = [
     shortLabel: 'Vida laboral',
     tagline: 'Gestión y análisis del historial laboral',
     href: '/vida-laboral',
-    status: 'expansion',
+    status: 'activo',
     accent: 'from-warning/15 to-transparent',
   },
   {
