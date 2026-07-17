@@ -1,16 +1,20 @@
 /**
- * Extracción de texto PDF compatible con Vercel/serverless.
- * Usa unpdf (sin DOMMatrix / canvas) — ruta principal fiable.
+ * Extracción de texto PDF con el mismo motor que usa el fundador:
+ * pdf-parse + worker + CanvasFactory (@napi-rs/canvas).
  */
 export async function extractPdfText(fileBuffer: Buffer): Promise<{
   text: string;
   totalPages: number;
 }> {
-  const { extractText } = await import('unpdf');
-  const result = await extractText(new Uint8Array(fileBuffer), { mergePages: true });
-  const text = typeof result.text === 'string' ? result.text : String(result.text ?? '');
-  return {
-    text: text.trim(),
-    totalPages: result.totalPages || 1,
-  };
+  const { createPdfParser } = await import('@/lib/pdf/create-parser');
+  const parser = await createPdfParser(fileBuffer);
+  try {
+    const result = await parser.getText();
+    return {
+      text: (result.text || '').trim(),
+      totalPages: result.total || 1,
+    };
+  } finally {
+    await parser.destroy();
+  }
 }

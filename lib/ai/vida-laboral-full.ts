@@ -573,72 +573,70 @@ async function extractFullDocumentFromPdfWithOpenAi(
   fileBuffer: Buffer,
   documentType: string
 ): Promise<FullDocumentExtraction> {
-  const { extractPdfText } = await import('@/lib/pdf/extract-text');
-  const { text: rawText, totalPages } = await extractPdfText(fileBuffer);
+  const { createPdfParser } = await import('@/lib/pdf/create-parser');
+  const parser = await createPdfParser(fileBuffer);
 
-  if (!rawText.trim() && totalPages === 0) {
-    throw new Error('No se pudo leer el PDF.');
-  }
+  try {
+    const textResult = await parser.getText();
+    const rawText = textResult.text || '';
+    const totalPages = textResult.total || 1;
 
-  let informe = emptyVidaLaboral(documentType);
-  informe.paginasProcesadas = totalPages;
-
-  const textChunks = splitTextBySize(rawText, 45000);
-
-  for (let i = 0; i < textChunks.length; i++) {
-    const partial = await extractFromTextChunk(textChunks[i], documentType, {
-      includeIdentificacion: i === 0,
-      chunkLabel: `${i + 1}/${textChunks.length}`,
-    });
-    informe = mergeVidaLaboral(informe, partial);
-  }
-
-  // Visión opcional: si canvas/pdf-parse falla en serverless, seguimos con texto
-  if (totalPages > 0) {
-    try {
-      const { createPdfParser } = await import('@/lib/pdf/create-parser');
-      const parser = await createPdfParser(fileBuffer);
-      try {
-        const allPages = Array.from({ length: totalPages }, (_, i) => i + 1);
-        for (const batch of chunk(allPages, 3)) {
-          try {
-            const shots = await parser.getScreenshot({ partial: batch, scale: 1.35 });
-            const urls = shots.pages.map((p) => p.dataUrl).filter(Boolean);
-            if (urls.length > 0) {
-              const partial = await extractFromVisionPages(urls, documentType, batch);
-              informe = mergeVidaLaboral(informe, partial);
-            }
-          } catch (err) {
-            if (isOpenAiQuotaError(err)) throw err;
-            console.warn('Vision batch failed pages', batch, err);
-          }
-        }
-      } finally {
-        await parser.destroy();
-      }
-    } catch (err) {
-      console.warn('Screenshots PDF omitidos (canvas/pdf-parse no disponible):', err);
+    if (!rawText.trim() && totalPages === 0) {
+      throw new Error('No se pudo leer el PDF.');
     }
+
+    let informe = emptyVidaLaboral(documentType);
+    informe.paginasProcesadas = totalPages;
+
+    const textChunks = splitTextBySize(rawText, 45000);
+
+    for (let i = 0; i < textChunks.length; i++) {
+      const partial = await extractFromTextChunk(textChunks[i], documentType, {
+        includeIdentificacion: i === 0,
+        chunkLabel: `${i + 1}/${textChunks.length}`,
+      });
+      informe = mergeVidaLaboral(informe, partial);
+    }
+
+    // Visión en páginas — complementa el texto (mismo parser que el fundador)
+    if (totalPages > 0) {
+      const allPages = Array.from({ length: totalPages }, (_, i) => i + 1);
+      for (const batch of chunk(allPages, 3)) {
+        try {
+          const shots = await parser.getScreenshot({ partial: batch, scale: 1.35 });
+          const urls = shots.pages.map((p) => p.dataUrl).filter(Boolean);
+          if (urls.length > 0) {
+            const partial = await extractFromVisionPages(urls, documentType, batch);
+            informe = mergeVidaLaboral(informe, partial);
+          }
+        } catch (err) {
+          if (isOpenAiQuotaError(err)) throw err;
+          console.warn('Vision batch failed pages', batch, err);
+        }
+      }
+    }
+
+    if (!rawText.trim() && informe.totalPeriodosExtraidos === 0) {
+      throw new Error('No se pudo leer el PDF.');
+    }
+
+    informe.paginasProcesadas = totalPages;
+    informe.totalPeriodosExtraidos =
+      informe.periodosContrato.length +
+      informe.periodosAutonomo.length +
+      informe.prestacionesDesempleo.length +
+      informe.situacionesAsimiladas.length;
+
+    const fieldScore = countFullExtractionFields(
+      toFullDocumentExtraction(informe, rawText, 0)
+    );
+    const confidence =
+      fieldScore >= 10 ? 0.95 : fieldScore >= 5 ? 0.85 : fieldScore >= 2 ? 0.7 : 0.5;
+
+    return toFullDocumentExtraction(informe, rawText, confidence);
+  } finally {
+    await parser.destroy();
   }
-
-  if (!rawText.trim() && informe.totalPeriodosExtraidos === 0) {
-    throw new Error('No se pudo leer el PDF.');
-  }
-
-  informe.paginasProcesadas = totalPages;
-  informe.totalPeriodosExtraidos =
-    informe.periodosContrato.length +
-    informe.periodosAutonomo.length +
-    informe.prestacionesDesempleo.length +
-    informe.situacionesAsimiladas.length;
-
-  const fieldScore = countFullExtractionFields(
-    toFullDocumentExtraction(informe, rawText, 0)
-  );
-  const confidence =
-    fieldScore >= 10 ? 0.95 : fieldScore >= 5 ? 0.85 : fieldScore >= 2 ? 0.7 : 0.5;
-
-  return toFullDocumentExtraction(informe, rawText, confidence);
 }
 
 export async function extractFullDocumentFromImage(

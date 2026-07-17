@@ -1,6 +1,6 @@
 /**
- * Crea PDFParse solo para capturas de página (visión).
- * El texto del PDF debe ir por `extractPdfText` (unpdf) — no depende de canvas.
+ * PDFParse listo para Node/Vercel (mismo flujo que extrajo bien los PDF del fundador).
+ * Orden docs pdf-parse: worker + CanvasFactory antes de usar PDFParse.
  */
 export async function createPdfParser(fileBuffer: Buffer) {
   const canvas = await import('@napi-rs/canvas');

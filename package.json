@@ -19,7 +19,7 @@
   "dependencies": {
     "@ai-sdk/openai": "^0.0.66",
     "@google-cloud/documentai": "^8.9.0",
-    "@napi-rs/canvas": "^1.0.2",
+    "@napi-rs/canvas": "^0.1.80",
     "@sentry/nextjs": "^8.33.1",
     "@supabase/ssr": "^0.5.1",
     "@supabase/supabase-js": "^2.45.4",
@@ -40,7 +40,6 @@
     "sonner": "^1.5.0",
     "stripe": "^16.12.0",
     "tailwind-merge": "^2.5.3",
-    "unpdf": "^1.6.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {
