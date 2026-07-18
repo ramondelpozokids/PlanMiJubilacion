@@ -111,11 +111,20 @@ export async function issueBillingDocuments(
 
   const invoiceHtml = renderBillingDocumentHtml(invoicePayload, DEFAULT_ISSUER);
   const receiptHtml = renderBillingDocumentHtml(receiptPayload, DEFAULT_ISSUER);
+  const reportVerificationId = crypto.randomUUID();
   const coverHtml = renderReportCoverHtml({
     clientName: input.clientName,
+    clientEmail: input.clientEmail,
+    clientTaxId: input.clientTaxId,
+    clientAddress: input.clientAddress,
     reportNumber,
     issuedAt: paymentDate,
     title: rule.label,
+    concept,
+    totalCents: finalCents,
+    invoiceNumber,
+    receiptNumber,
+    verificationId: reportVerificationId,
   });
 
   const admin = createServiceClient();
@@ -171,12 +180,16 @@ export async function issueBillingDocuments(
         docNumber: reportNumber,
         clientName: input.clientName,
         clientEmail: input.clientEmail,
+        clientTaxId: input.clientTaxId,
+        clientAddress: input.clientAddress,
         concept,
         totalCents: finalCents,
         issuedAt: paymentDate,
         status: 'paid',
-        verificationId: crypto.randomUUID(),
+        verificationId: reportVerificationId,
         reportNumber,
+        invoiceNumber,
+        receiptNumber,
       },
       html_snapshot: coverHtml,
     },

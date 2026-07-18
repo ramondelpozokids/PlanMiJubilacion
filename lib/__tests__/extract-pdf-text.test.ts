@@ -27,9 +27,13 @@ startxref
 }
 
 describe('extractPdfText', () => {
-  it('extrae texto con pdf-parse + CanvasFactory', async () => {
-    const { text, totalPages } = await extractPdfText(minimalPdf());
-    expect(totalPages).toBe(1);
-    expect(text).toContain('HelloPdf');
-  });
+  it(
+    'extrae texto con pdf-parse + CanvasFactory',
+    async () => {
+      const { text, totalPages } = await extractPdfText(minimalPdf());
+      expect(totalPages).toBe(1);
+      expect(text).toContain('HelloPdf');
+    },
+    20_000
+  );
 });

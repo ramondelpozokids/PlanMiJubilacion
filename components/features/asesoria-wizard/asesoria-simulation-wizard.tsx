@@ -105,15 +105,17 @@ export function AsesoriaSimulationWizard({
 
   useEffect(() => {
     const loaded = loadWizardDraft();
-    // Prefill birth from expediente if draft empty
-    if (!loaded.birthDate && initialExpediente?.identificacion.fechaNacimiento?.value) {
-      const raw = initialExpediente.identificacion.fechaNacimiento.value;
-      const dmy = raw.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+    const fromExp = initialExpediente?.identificacion.fechaNacimiento?.value;
+    // Fundador: siempre 02/08/1967 (nunca un draft antiguo de Carlos u otro familiar)
+    if (isFounder) {
+      loaded.birthDate = '1967-08-02';
+    } else if (!loaded.birthDate && fromExp) {
+      const dmy = fromExp.match(/(\d{2})\/(\d{2})\/(\d{4})/);
       if (dmy) loaded.birthDate = `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
     }
     setDraft(loaded);
     setHydrated(true);
-  }, [initialExpediente]);
+  }, [initialExpediente, isFounder]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -246,22 +248,26 @@ export function AsesoriaSimulationWizard({
     <div className="space-y-8 max-w-4xl">
       <header className="space-y-3">
         <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-          Asesoría gratuita
+          Mi plan · simulación guiada
         </p>
         <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
-          Simulación de jubilación guiada
+          Simulación de jubilación (tu expediente)
         </h1>
         <p className="max-w-2xl text-muted-foreground leading-relaxed">
-          Te acompañamos paso a paso: fecha de nacimiento, documentos (vida laboral, bases y
-          nómina), cotizaciones en el extranjero y la fecha en la que quieres jubilarte. Al final
-          verás una estimación clara y una comparativa de escenarios.
+          Te acompañamos paso a paso con <strong>tus</strong> documentos y fechas. Esto actualiza
+          tu plan personal, no una consulta de cliente.
         </p>
         {isFounder && (
-          <p className="text-sm">
-            <Link href="/asesoria/consultas" className="underline hover:text-foreground">
-              Ir a consultas de terceros (fundador)
-            </Link>
-          </p>
+          <div className="rounded-lg border border-accent/30 bg-accent/5 px-3 py-2 text-sm max-w-2xl space-y-1">
+            <p className="font-medium text-accent">Modo fundador</p>
+            <p className="text-muted-foreground text-xs leading-relaxed">
+              Esta pantalla es tu plan (Ramón). Para amigos o familiares usa{' '}
+              <Link href="/asesoria/consultas" className="underline hover:text-foreground">
+                Asesoría → Consultas de clientes
+              </Link>
+              .
+            </p>
+          </div>
         )}
       </header>
 

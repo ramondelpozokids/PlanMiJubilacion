@@ -5,9 +5,9 @@ import { loadExpediente } from '@/lib/expediente/repository';
 import { AsesoriaSimulationWizard } from '@/components/features/asesoria-wizard/asesoria-simulation-wizard';
 
 export const metadata = {
-  title: 'Asesoría gratuita',
+  title: 'Simulación guiada',
   description:
-    'Simulación de jubilación guiada a partir de tu fecha de nacimiento, vida laboral, bases y cotizaciones en el extranjero.',
+    'Simulación de jubilación guiada sobre tu expediente personal: fecha de nacimiento, vida laboral, bases y cotizaciones en el extranjero.',
   robots: { index: false },
 };
 

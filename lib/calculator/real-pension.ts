@@ -13,6 +13,7 @@ import { listDocumentedBases } from './from-expediente';
 import { calculatePension } from './pension';
 import {
   DEFAULT_LIFE_PATH,
+  desempleoBaseForMonth,
   periodKey,
   projectedBaseForMonth,
   type LifePathAssumptions,
@@ -120,10 +121,24 @@ export function buildBasesSeries(
       bases.push(proj);
       projectedUsed++;
     } else {
-      // Hueco en el pasado documental: 0 (no inventar media)
-      bases.push(0);
+      // Hueco reciente de paro SEPE conocido (p. ej. jun/2026–hoy con base 3.357):
+      // no inventa medias de carrera; solo aplica el tramo declarado en life-path.
+      const sepe = desempleoBaseForMonth(y, m, lifePath);
+      if (sepe > 0) {
+        bases.push(sepe);
+        projectedUsed++;
+      } else {
+        bases.push(0);
+      }
     }
   }
+
+  const paroNote =
+    lifePath.desempleoBaseAntesSubsidio > 0
+      ? ` paro SEPE ${lifePath.desempleoBaseAntesSubsidio} €/mes` +
+        (lifePath.desempleoBaseFrom ? ` desde ${lifePath.desempleoBaseFrom}` : '') +
+        ` hasta ${lifePath.subsidioMayores52From};`
+      : '';
 
   return {
     bases,
@@ -132,7 +147,7 @@ export function buildBasesSeries(
     note:
       documentedUsed === 0
         ? 'Sin bases documentadas del informe. Relee el Informe Integral de Bases.'
-        : `Pasado: ${documentedUsed} meses del informe de bases. Futuro: ${projectedUsed} meses con escenario desempleo → subsidio +52 (base oficial 125 % mínima por año, desde ${lifePath.subsidioMayores52From}).`,
+        : `Pasado: ${documentedUsed} meses del informe de bases.${paroNote} Futuro: ${projectedUsed} meses con escenario desempleo → subsidio +52 (base oficial 125 % mínima por año, desde ${lifePath.subsidioMayores52From}).`,
   };
 }
 

@@ -9,7 +9,7 @@ import { computeAnticipation } from '@/lib/rules/early-retirement';
 import { getActiveEconomicParams } from '@/lib/rules/economic';
 import type { ExpedienteDigital } from '@/lib/expediente/types';
 import { applyEarlyReduction, getRealPensionSnapshot } from './real-pension';
-import { DEFAULT_LIFE_PATH } from './life-path';
+import { DEFAULT_LIFE_PATH, type LifePathAssumptions } from './life-path';
 
 export type ScenarioOrigin = 'system' | 'custom';
 
@@ -30,6 +30,11 @@ export interface ScenarioAssumptions {
   paroMonths?: number;
   /** Tipo libre */
   scenarioType?: string;
+  /**
+   * Escenario vital (asesoría: el del caso; personal: DEFAULT_LIFE_PATH).
+   * Si no se pasa, se usa DEFAULT_LIFE_PATH.
+   */
+  lifePath?: LifePathAssumptions;
 }
 
 export interface SimulatedScenario {
@@ -141,8 +146,8 @@ export function simulateScenario(
   const extra =
     (assumptions.extraMonthsContributed ?? 0) + convenioMonths + paroMonths;
 
-  const lifePath = {
-    ...DEFAULT_LIFE_PATH,
+  const lifePath: LifePathAssumptions = {
+    ...(assumptions.lifePath ?? DEFAULT_LIFE_PATH),
     ...(assumptions.futureMonthlyBase != null && assumptions.futureMonthlyBase > 0
       ? { subsidioCotizacionBase: assumptions.futureMonthlyBase }
       : {}),

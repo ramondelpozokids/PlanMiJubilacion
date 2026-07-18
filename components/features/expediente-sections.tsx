@@ -29,10 +29,22 @@ function EmptyHint({ text }: { text: string }) {
   return <p className="text-sm text-muted-foreground py-4">{text}</p>;
 }
 
-function Stat({ n, label, warn }: { n: number; label: string; warn?: boolean }) {
+function Stat({
+  n,
+  label,
+  warn,
+  money,
+}: {
+  n: number | string;
+  label: string;
+  warn?: boolean;
+  money?: boolean;
+}) {
   return (
     <div className="rounded-lg border bg-background px-3 py-3 text-center">
-      <div className={`text-2xl font-semibold tabular-nums ${warn ? 'text-warning' : ''}`}>
+      <div
+        className={`font-semibold tabular-nums ${money ? 'text-lg sm:text-xl' : 'text-2xl'} ${warn ? 'text-warning' : ''}`}
+      >
         {n}
       </div>
       <div className="mt-0.5 text-[11px] uppercase tracking-wide text-muted-foreground">
@@ -58,6 +70,9 @@ export function ExpedienteSections({
     const [mb, yb] = pb.split('/');
     return Number(yb) * 12 + Number(mb) - (Number(ya) * 12 + Number(ma));
   });
+  const sumaBases = expediente.bases.reduce((acc, b) => acc + (Number(b.base?.value) || 0), 0);
+  const mediaBases =
+    expediente.bases.length > 0 ? sumaBases / expediente.bases.length : null;
 
   return (
     <>
@@ -69,12 +84,17 @@ export function ExpedienteSections({
           <Stat n={expediente.periodos.length} label="Periodos" />
           <Stat
             n={expediente.bases.length}
-            label="Bases"
+            label="Meses base"
             warn={expediente.bases.length === 0}
+          />
+          <Stat
+            n={sumaBases > 0 ? formatCurrency(sumaBases) : '—'}
+            label="Suma bases"
+            money
+            warn={sumaBases === 0}
           />
           <Stat n={expediente.prestaciones.length} label="Prestaciones" />
           <Stat n={expediente.resoluciones.length} label="Certificados" />
-          <Stat n={expediente.lagunas.length} label="Lagunas" />
           <Stat n={expediente.documentIds.length} label="Documentos" />
         </div>
         {outlook?.pension.ordinaryResult && (
@@ -111,6 +131,22 @@ export function ExpedienteSections({
             <Val label="Años cotizados" field={expediente.resumen.anosCotizados} />
             <Val label="Meses" field={expediente.resumen.mesesCotizados} />
             <Val label="Última base" field={expediente.resumen.baseMensualActual} />
+            {sumaBases > 0 && (
+              <div className="flex justify-between gap-4 border-b border-border/40 py-1.5 text-sm last:border-0">
+                <span className="text-muted-foreground">Suma bases documentadas</span>
+                <span className="text-right font-medium tabular-nums">
+                  {formatCurrencyExact(sumaBases)}
+                </span>
+              </div>
+            )}
+            {mediaBases != null && (
+              <div className="flex justify-between gap-4 border-b border-border/40 py-1.5 text-sm last:border-0">
+                <span className="text-muted-foreground">Media bases</span>
+                <span className="text-right font-medium tabular-nums">
+                  {formatCurrencyExact(mediaBases)}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </CollapsibleSection>
@@ -226,25 +262,39 @@ export function ExpedienteSections({
         {expediente.bases.length === 0 ? (
           <EmptyHint text="0 meses extraídos. En Documentos pulsa Releer en el informe de bases." />
         ) : (
-          <div className="max-h-[28rem] overflow-y-auto print:max-h-none">
-            <ProTable headers={['Periodo', 'Base', 'Origen']} minWidth="min-w-[420px]">
-              {basesSorted.map((b) => (
-                <tr key={b.id} className="border-b border-border/40">
-                  <td className="py-2 pr-3 tabular-nums whitespace-nowrap font-medium">
-                    {b.periodo?.value ?? '—'}
-                  </td>
-                  <td className="py-2 pr-3 tabular-nums whitespace-nowrap">
-                    {b.base?.value != null
-                      ? formatCurrencyExact(Number(b.base.value))
-                      : '—'}
-                  </td>
-                  <td className="py-2 text-xs text-muted-foreground">
-                    {displayFileName(b.sources[0]?.documentName)}
-                  </td>
-                </tr>
-              ))}
-            </ProTable>
-          </div>
+          <>
+            <div className="mb-3 rounded-lg border bg-muted/20 px-4 py-3 text-sm">
+              <p className="text-muted-foreground">
+                Total bases documentadas (suma de los meses del informe)
+              </p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">
+                {formatCurrencyExact(sumaBases)}
+                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                  · {expediente.bases.length} meses
+                  {mediaBases != null ? ` · media ${formatCurrencyExact(mediaBases)}` : ''}
+                </span>
+              </p>
+            </div>
+            <div className="max-h-[28rem] overflow-y-auto print:max-h-none">
+              <ProTable headers={['Periodo', 'Base', 'Origen']} minWidth="min-w-[420px]">
+                {basesSorted.map((b) => (
+                  <tr key={b.id} className="border-b border-border/40">
+                    <td className="py-2 pr-3 tabular-nums whitespace-nowrap font-medium">
+                      {b.periodo?.value ?? '—'}
+                    </td>
+                    <td className="py-2 pr-3 tabular-nums whitespace-nowrap">
+                      {b.base?.value != null
+                        ? formatCurrencyExact(Number(b.base.value))
+                        : '—'}
+                    </td>
+                    <td className="py-2 text-xs text-muted-foreground">
+                      {displayFileName(b.sources[0]?.documentName)}
+                    </td>
+                  </tr>
+                ))}
+              </ProTable>
+            </div>
+          </>
         )}
       </CollapsibleSection>
 

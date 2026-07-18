@@ -6,15 +6,10 @@ import { listUserBillingDocuments, listActivePricing } from '@/lib/billing/repos
 import { formatPriceEur } from '@/lib/billing/pricing';
 import { ProductPageHeader } from '@/components/features/planmi-suite';
 import { IssueDocumentsForm } from '@/components/features/issue-documents-form';
+import { BillingHistoryPanel } from '@/components/features/billing-history-panel';
 import { Button } from '@/components/ui/button';
 
 export const metadata = { title: 'Mis informes y documentos', robots: { index: false } };
-
-function docLabel(type: string) {
-  if (type === 'invoice') return 'Factura';
-  if (type === 'receipt') return 'Recibo';
-  return 'Portada';
-}
 
 export default async function InformesPage() {
   const profile = await getProfile();
@@ -30,7 +25,7 @@ export default async function InformesPage() {
     <div className="space-y-8 max-w-4xl">
       <ProductPageHeader
         name="Informes y documentos"
-        tagline="Facturas, recibos e historial de informes"
+        tagline="Crear y guardar facturas / recibos, con historial por tipo"
         actions={
           <Link href="/jubilacion">
             <Button size="sm" variant="secondary">
@@ -67,43 +62,7 @@ export default async function InformesPage() {
         </ul>
       </section>
 
-      <section className="rounded-xl border p-5">
-        <h2 className="font-semibold">Historial</h2>
-        {docs.length === 0 ? (
-          <p className="mt-4 text-sm text-muted-foreground">
-            Aún no hay documentos. Usa el formulario de arriba para emitir factura, recibo y
-            portada.
-          </p>
-        ) : (
-          <ul className="mt-4 space-y-2 text-sm">
-            {docs.map((d) => {
-              const amount =
-                typeof d.payload.totalCents === 'number'
-                  ? formatPriceEur(d.payload.totalCents)
-                  : null;
-              return (
-                <li key={d.id}>
-                  <Link
-                    href={`/informes/${d.id}`}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 hover:bg-muted/40 transition-colors"
-                  >
-                    <span>
-                      <span className="font-medium">{docLabel(d.docType)}</span>{' '}
-                      {d.docNumber}
-                      {amount ? (
-                        <span className="text-muted-foreground"> · {amount}</span>
-                      ) : null}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {new Date(d.createdAt).toLocaleString('es-ES')}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
+      <BillingHistoryPanel documents={docs} />
     </div>
   );
 }

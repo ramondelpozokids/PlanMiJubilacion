@@ -1,9 +1,15 @@
 {
-  "_comment": "Fuente de verdad anual. Año vacío {} hereda el anterior con datos. Cambiar un año → todo el ERP recalcula (bruto→neto→base→impacto→comparativa→informe).",
+  "_comment": "Fuente de verdad anual del ERP subsidio +52. baseMinima = tope mínimo RG (NO el 125%). baseCotizacion = baseMinima × cotizacion52. Año vacío {} hereda.",
+  "_sources": [
+    "LGSS art. 280.3 (redacción RDL 8/2019, BOE-A-2019-3481): base de cotización = 125% del tope mínimo vigente",
+    "Orden PJC/297/2026 (BOE-A-2026-7296): tope mínimo / base mínima grupos 4–7 = 1.424,40 €/mes desde 01/01/2026",
+    "RDL 3/2026: base mínima vinculada a SMI + 1/6 (SMI 1.221 € → 1.424,40 €)",
+    "Cuantía subsidio: 80% IPREM = 480 €/mes en 12 pagas (IPREM 600 €)"
+  ],
   "2026": {
     "iprem": 600,
-    "smi": 1381,
-    "baseMinima": 1780.62,
+    "smi": 1221,
+    "baseMinima": 1424.4,
     "subsidio52": 0.8,
     "importeMensual": 480,
     "cotizacion52": 1.25,

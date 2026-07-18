@@ -16,8 +16,8 @@ describe('Motor Económico', () => {
   });
 
   it('convenio cotiza % sobre base del JSON', () => {
-    const q = quoteConvenioEspecial({ year: 2026, base: 1780.62 });
-    expect(q.cuotaMensual).toBeCloseTo(1780.62 * 0.283, 1);
+    const q = quoteConvenioEspecial({ year: 2026, base: 1780.5 });
+    expect(q.cuotaMensual).toBeCloseTo(1780.5 * 0.283, 1);
   });
 });
 
@@ -86,7 +86,7 @@ describe('simulador libre → evaluate', () => {
       expectancyYearsFrom65: 22,
       inflationAnnual: 0.02,
       subsidioMayores52From: '2027-02',
-      futureMonthlyBase: 1780.62,
+      futureMonthlyBase: 1780.5,
     });
     const o = evaluateScenario(sample(), s, new Date('2026-07-15'));
     expect(o).not.toBeNull();

@@ -7,15 +7,21 @@ import { expedienteDataStats } from '@/lib/calculator/from-expediente';
 import type { ExpedienteDigital } from '@/lib/expediente/types';
 import { formatCurrency } from '@/lib/utils';
 import { buildRetirementOutlook } from '@/lib/calculator/retirement-outlook';
+import { FOUNDER_LIFE_PATH } from '@/lib/calculator/life-path';
 import { PlanMiSuite } from '@/components/features/planmi-suite';
 import { ReportToolbar } from '@/components/features/print-button';
+import { DashboardToolsStrip } from '@/components/features/dashboard-tools-strip';
+import { ScopeBadge } from '@/components/features/scope-badge';
 import { PLANMI_BRAND } from '@/lib/planmi/products';
+import { hasUnlimitedAccess } from '@/lib/admin/access';
+import { resolveDisplayName } from '@/lib/admin/config';
 
 export const metadata = { title: 'Inicio', robots: { index: false } };
 
 export default async function DashboardPage() {
   const profile = await getProfile();
   const supabase = await createClient();
+  const isFounder = hasUnlimitedAccess(profile);
 
   const [{ data: documentsData }, expediente, { count: docCount }] = await Promise.all([
     supabase
@@ -36,11 +42,12 @@ export default async function DashboardPage() {
       /bases/i.test(d.name ?? '')
   );
   const basesMissingDespiteDoc = hasBasesDoc && (stats?.basesDocumentadas ?? 0) === 0;
-  const outlook = exp ? buildRetirementOutlook(exp) : null;
-  const firstName =
-    exp?.identificacion.nombre?.value?.split(' ')[0] ??
-    profile?.full_name?.split(' ')[0] ??
-    'usuario';
+  const outlook = exp ? buildRetirementOutlook(exp, new Date(), FOUNDER_LIFE_PATH) : null;
+  const displayName = resolveDisplayName({
+    email: profile?.email,
+    fullName: profile?.full_name,
+    fallback: 'usuario',
+  });
 
   const suiteMetrics = {
     jubilacion: {
@@ -62,7 +69,7 @@ export default async function DashboardPage() {
           : '—',
       secondary:
         stats?.basesDocumentadas != null
-          ? `${stats.basesDocumentadas} bases documentadas`
+          ? `${stats.basesDocumentadas} meses · ${formatCurrency(stats.sumaBasesDocumentadas)}`
           : 'Sin historial aún',
     },
     futuro: {
@@ -73,10 +80,33 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8 print-root max-w-7xl">
-      <ReportToolbar
-        title={`Hola, ${firstName}`}
-        subtitle={`PlanMiFuturo · plataforma integral · expediente ${exp?.completitud.score ?? 0}% · ${docCount ?? 0} documento(s)`}
-      />
+      <div className="space-y-2">
+        <ScopeBadge scope="personal" />
+        <ReportToolbar
+          title={`Hola, ${displayName}`}
+          subtitle={`PlanMiFuturo · tu plan personal · expediente ${exp?.completitud.score ?? 0}% · ${docCount ?? 0} documento(s)`}
+        />
+      </div>
+
+      <DashboardToolsStrip isFounder={isFounder} />
+
+      {isFounder && (
+        <section className="rounded-xl border border-dashed p-4 print:hidden">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-accent">
+            Amigos y familiares (aparte)
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Si subes PDFs de Carlos u otro familiar, créales una consulta aquí. No van en Mi plan.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link href="/asesoria/consultas">
+              <Button size="sm" variant="secondary">
+                Abrir consultas
+              </Button>
+            </Link>
+          </div>
+        </section>
+      )}
 
       <section className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-accent/10 via-background to-success/5 p-6 sm:p-8">
         <div
@@ -91,9 +121,7 @@ export default async function DashboardPage() {
           <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
             {PLANMI_BRAND}
           </p>
-          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-            PlanMiFuturo
-          </h2>
+          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">PlanMiFuturo</h2>
           <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
             Cuatro productos sobre el mismo expediente digital: jubilación, prestaciones, vida
             laboral y visión integral. Elige por dónde seguir.
@@ -175,15 +203,23 @@ export default async function DashboardPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Bases documentadas</CardTitle>
+            <CardTitle className="text-base">Suma de bases documentadas</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-semibold tabular-nums">
-              {stats?.basesDocumentadas ?? 0}
+              {stats && stats.basesDocumentadas > 0
+                ? formatCurrency(stats.sumaBasesDocumentadas)
+                : '—'}
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              {stats?.primeraBase && stats?.ultimaBase
-                ? `${stats.primeraBase} → ${stats.ultimaBase}`
+              {stats?.basesDocumentadas
+                ? `${stats.basesDocumentadas} meses` +
+                  (stats.primeraBase && stats.ultimaBase
+                    ? ` · ${stats.primeraBase} → ${stats.ultimaBase}`
+                    : '') +
+                  (stats.mediaBasesDocumentadas != null
+                    ? ` · media ${formatCurrency(stats.mediaBasesDocumentadas)}`
+                    : '')
                 : basesMissingDespiteDoc
                   ? 'PDF de bases subido, sin meses extraídos'
                   : 'Sin bases aún'}
@@ -256,7 +292,7 @@ export default async function DashboardPage() {
       )}
 
       <p className="print-footer">
-        PlanMiFuturo · Dashboard · {new Date().toLocaleString('es-ES')}
+        PlanMiFuturo · Dashboard · {displayName} · {new Date().toLocaleString('es-ES')}
       </p>
     </div>
   );

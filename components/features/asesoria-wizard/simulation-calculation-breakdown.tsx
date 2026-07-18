@@ -85,9 +85,39 @@ export function SimulationCalculationBreakdown({
           </dd>
         </div>
         <div>
-          <dt className="text-muted-foreground">Pensión resultante</dt>
+          <dt className="text-muted-foreground">Pensión resultante (bruto/mes)</dt>
           <dd className="font-medium">
             {c.finalMonthly != null ? formatCurrencyExact(c.finalMonthly) : '—'}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Pagas anuales</dt>
+          <dd className="font-medium">{row.annualPayments ?? 14}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Bruto anual</dt>
+          <dd className="font-medium">
+            {row.annualPension != null ? formatCurrencyExact(row.annualPension) : '—'}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">
+            IRPF ({((row.irpfRetention ?? 0) * 100).toFixed(1)} %)
+          </dt>
+          <dd className="font-medium">
+            {row.irpfMonthly != null ? formatCurrencyExact(row.irpfMonthly) : '—'} /mes
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Neto / mes</dt>
+          <dd className="font-medium">
+            {row.netMonthly != null ? formatCurrencyExact(row.netMonthly) : '—'}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Neto anual (14 pagas)</dt>
+          <dd className="font-medium">
+            {row.netAnnual != null ? formatCurrencyExact(row.netAnnual) : '—'}
           </dd>
         </div>
       </dl>

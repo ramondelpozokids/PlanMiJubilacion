@@ -144,6 +144,11 @@ export async function processQueuedDocument(
       })
       .eq('id', documentId);
 
+    if (result.replacedDocs.length > 0) {
+      const { deleteDocumentRows } = await import('@/lib/documents/replace-same-type');
+      await deleteDocumentRows(supabase, userId, result.replacedDocs);
+    }
+
     return {
       success: true,
       detectedType: result.detectedType,

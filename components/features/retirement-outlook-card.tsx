@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { RetirementOutlook } from '@/lib/calculator/retirement-outlook';
+import { describeLifePathTramos } from '@/lib/calculator/life-path';
 import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -16,6 +17,7 @@ export function RetirementOutlookCard({
   const p = outlook.pension.ordinaryResult;
   const sim = outlook.pension.officialSimReference;
   const path = outlook.pension.lifePath;
+  const tramos = describeLifePathTramos(path);
   const who = variant === 'consultation' ? clientName ?? 'Esta persona' : 'Tú';
   const possessive = variant === 'consultation' ? 'su' : 'tu';
 
@@ -43,7 +45,7 @@ export function RetirementOutlookCard({
               A los {outlook.ordinary.ageLabel}
               {outlook.ordinary.at65IfCareer
                 ? ' · carrera completa en esa fecha (cotizando con subsidio +52)'
-                : ` · te faltan ${outlook.ordinary.monthsMissingForAge65} meses cotizados para poder a los 65`}
+                : ` · ${variant === 'consultation' ? 'faltan' : 'te faltan'} ${outlook.ordinary.monthsMissingForAge65} meses cotizados para poder a los 65`}
             </p>
             <p className="text-xs text-muted-foreground mt-2">{outlook.ordinary.explanation}</p>
             {outlook.ordinaryIfFreeze && (
@@ -111,6 +113,22 @@ export function RetirementOutlookCard({
             </p>
           </div>
         </div>
+
+        {(tramos.paro || tramos.subsidio) && (
+          <div className="rounded-md border bg-muted/20 p-3 text-sm space-y-1">
+            <p className="font-medium">Cotización hasta la jubilación ({possessive} escenario)</p>
+            {tramos.paro && <p className="text-muted-foreground">1. {tramos.paro}</p>}
+            {tramos.subsidio && (
+              <p className="text-muted-foreground">
+                2. {tramos.subsidio} ({formatCurrency(outlook.subsidio52.monthly.baseCotizacion)}
+                /mes en {new Date().getFullYear()}+)
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground pt-1">
+              Objetivo: ordinaria el {outlook.ordinary.dateLabel} (carrera completa cotizando).
+            </p>
+          </div>
+        )}
 
         {sim && (
           <div className="rounded-md border border-dashed p-3 text-sm">

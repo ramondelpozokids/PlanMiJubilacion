@@ -299,49 +299,80 @@ ${body}
 
 export function renderReportCoverHtml(input: {
   clientName: string;
+  clientEmail?: string;
+  clientTaxId?: string;
+  clientAddress?: string;
   reportNumber: string;
   issuedAt: string;
   title?: string;
+  concept?: string;
+  totalCents?: number;
+  invoiceNumber?: string;
+  receiptNumber?: string;
+  verificationId?: string;
 }): string {
   const issuer = DEFAULT_ISSUER;
   const dateEs = new Date(input.issuedAt).toLocaleDateString('es-ES');
-  const logo = getLogoDataUri();
-  const logoBlock = logo
-    ? `<div class="logo-wrap"><img src="${logo}" alt="${escapeHtml(issuer.tradeName)}" class="cover-logo" width="220" height="56" /></div>`
-    : `<div class="mark" aria-hidden="true">PM</div>
-  <div class="tag">${escapeHtml(issuer.tradeName)}</div>`;
+  const concept = input.concept ?? input.title ?? 'Informe personalizado de jubilación';
+  const verificationId = input.verificationId ?? crypto.randomUUID();
+  const total =
+    typeof input.totalCents === 'number' ? formatPriceEur(input.totalCents) : null;
 
   return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"/>
 <title>Informe ${escapeHtml(input.reportNumber)}</title>
 ${sharedStyles()}
-<style>
-  body { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(165deg, #fafaf9 0%, #f5f5f4 55%, #e7e5e4 100%); color: #1c1917; }
-  .cover {
-    width: 100%; max-width: 620px; padding: 56px 48px; text-align: center;
-    background: #fff; border: 1px solid #e7e5e4; border-radius: 8px;
-  }
-  .cover-logo {
-    display: block; margin: 0 auto; height: 80px; width: auto; max-width: 380px;
-    object-fit: contain;
-  }
-  .cover .logo-wrap {
-    display: inline-block; background: transparent; border-radius: 0; padding: 0; margin-bottom: 28px;
-  }
-  .cover .mark { margin: 0 auto 20px; }
-  .cover h1 { font-size: 30px; margin: 18px 0 8px; font-weight: 700; letter-spacing: -0.03em; color: #1c1917; }
-  .cover .sub { font-size: 16px; color: #57534e; }
-  .cover .meta { margin-top: 40px; font-size: 14px; color: #57534e; line-height: 1.9; }
-  .cover .tag { color: #78716c; }
-</style></head><body>
-<div class="cover">
-  ${logoBlock}
-  <h1>${escapeHtml(input.title ?? 'Informe personalizado')}</h1>
-  <p class="sub">Planificación de jubilación</p>
-  <div class="meta">
-    <strong>${escapeHtml(input.clientName)}</strong><br/>
-    Fecha: ${dateEs}<br/>
-    Nº informe: ${escapeHtml(input.reportNumber)}
+</head><body>
+${brandHeader(issuer)}
+<div class="badge">Informe</div>
+<div class="doc-title">INFORME</div>
+<div class="grid">
+  <div class="box">
+    <h3>Documento</h3>
+    <p><strong>Número:</strong> ${escapeHtml(input.reportNumber)}<br/>
+    <strong>Fecha:</strong> ${dateEs}<br/>
+    <strong>Tipo:</strong> Portada / informe de servicio</p>
+  </div>
+  <div class="box">
+    <h3>Cliente</h3>
+    <p><strong>${escapeHtml(input.clientName)}</strong>
+    ${input.clientEmail ? `<br/>${escapeHtml(input.clientEmail)}` : ''}
+    ${input.clientTaxId ? `<br/>NIF: ${escapeHtml(input.clientTaxId)}` : ''}
+    ${input.clientAddress ? `<br/>${escapeHtml(input.clientAddress)}` : ''}</p>
   </div>
 </div>
+<table>
+  <thead><tr>
+    <th>Descripción</th>
+    <th style="text-align:center">Cant.</th>
+    <th style="text-align:right">Importe</th>
+  </tr></thead>
+  <tbody><tr>
+    <td>${escapeHtml(concept)}</td>
+    <td style="text-align:center">1</td>
+    <td style="text-align:right">${total ?? '—'}</td>
+  </tr></tbody>
+</table>
+<div class="box" style="margin-top:22px">
+  <h3>Documentos asociados</h3>
+  <p>
+    ${input.invoiceNumber ? `<strong>Factura:</strong> ${escapeHtml(input.invoiceNumber)}<br/>` : ''}
+    ${input.receiptNumber ? `<strong>Recibo:</strong> ${escapeHtml(input.receiptNumber)}<br/>` : ''}
+    <strong>Informe:</strong> ${escapeHtml(input.reportNumber)}
+  </p>
+</div>
+<p style="margin-top:24px;font-size:13px">
+  Este documento es la portada del informe contratado. Acredita la emisión del servicio
+  <strong>${escapeHtml(concept)}</strong> a favor de ${escapeHtml(input.clientName)}.
+</p>
+<div class="footer">
+  <p>ID verificación: ${escapeHtml(verificationId)}</p>
+  <p>${escapeHtml(issuer.legalName)} · NIF/CIF ${escapeHtml(issuer.taxId)} · ${escapeHtml(issuer.email)} · ${escapeHtml(issuer.web)}</p>
+  <p>Gracias por confiar en ${escapeHtml(issuer.tradeName)}. Documento generado automáticamente.</p>
+</div>
 </body></html>`;
+}
+
+/** Logo público para componentes React imprimibles (misma marca que facturas). */
+export function getPublicLogoPath(): string {
+  return '/logo1.png';
 }

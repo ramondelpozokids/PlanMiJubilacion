@@ -221,5 +221,6 @@ export function lifePathFromSubsidioConfig(
     subsidioMayores52From: fromYm,
     subsidioCotizacionBase: baseCotizacion,
     desempleoBaseAntesSubsidio: 0,
+    desempleoBaseFrom: null,
   };
 }

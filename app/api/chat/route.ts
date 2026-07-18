@@ -4,12 +4,21 @@ import { getUser, createClient, getProfile } from '@/lib/supabase/server';
 import { getAdvisorContext } from '@/lib/ai/advisor-context';
 import { buildChatSystemPrompt } from '@/lib/ai/prompts';
 import { hasUnlimitedAccess } from '@/lib/admin/access';
+import { rateLimit } from '@/lib/security/rate-limit';
 
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
   const user = await getUser();
   if (!user) return new Response('No autenticado', { status: 401 });
+
+  const limited = rateLimit(`chat:${user.id}`, { limit: 30, windowMs: 60_000 });
+  if (!limited.ok) {
+    return new Response('Demasiadas peticiones. Espera un momento.', {
+      status: 429,
+      headers: { 'Retry-After': String(limited.retryAfterSec) },
+    });
+  }
 
   const profile = await getProfile();
   const { messages } = await req.json();

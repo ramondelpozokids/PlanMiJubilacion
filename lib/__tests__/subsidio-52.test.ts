@@ -23,11 +23,15 @@ describe('cadena ERP', () => {
     ]);
   });
 
-  it('bruto = 480 €/mes (80% IPREM, importe fijo JSON)', () => {
-    const d = deriveSubsidio52Amounts(getSubsidio52Config(2026));
+  it('bruto = 480 €/mes; cotiza 125% del tope mínimo 1.424,40 = 1.780,50 (Orden PJC/297/2026 + LGSS 280.3)', () => {
+    const cfg = getSubsidio52Config(2026);
+    expect(cfg.baseMinimaRegimenGeneral).toBe(1424.4);
+    expect(cfg.cotizacionPercentOfMinima).toBe(1.25);
+    const d = deriveSubsidio52Amounts(cfg);
     expect(d.subsidioBruto).toBe(480);
     expect(d.subsidioNeto).toBe(480);
-    expect(d.baseCotizacion).toBe(1780.62);
+    expect(d.baseMinima).toBe(1424.4);
+    expect(d.baseCotizacion).toBe(1780.5);
   });
 
   it('2028 vacío hereda; override 2028 cambiaría cifras', () => {
@@ -41,7 +45,7 @@ describe('cadena ERP', () => {
       irpfDefecto: 0,
     });
     expect(preview.bruto).toBe(665);
-    expect(preview.baseCotizacion).toBe(1900);
+    expect(preview.baseCotizacion).toBe(2375); // 1900 × 1.25
   });
 
   it('pipeline construye comparativa + informe', () => {

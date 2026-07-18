@@ -68,13 +68,20 @@ export default async function VidaLaboralPage() {
               )}
             </div>
             <div className="rounded-xl border bg-card p-5">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Bases</p>
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                Suma bases documentadas
+              </p>
               <p className="mt-2 text-3xl font-semibold tabular-nums">
-                {stats?.basesDocumentadas ?? 0}
+                {stats && stats.basesDocumentadas > 0
+                  ? formatCurrency(stats.sumaBasesDocumentadas)
+                  : '—'}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {stats?.primeraBase && stats?.ultimaBase
-                  ? `${stats.primeraBase} → ${stats.ultimaBase}`
+                {stats?.basesDocumentadas
+                  ? `${stats.basesDocumentadas} meses` +
+                    (stats.primeraBase && stats.ultimaBase
+                      ? ` · ${stats.primeraBase} → ${stats.ultimaBase}`
+                      : '')
                   : 'Sin rango'}
               </p>
             </div>

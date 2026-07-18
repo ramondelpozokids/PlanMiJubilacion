@@ -27,15 +27,27 @@ export async function extractByDocumentType(
 
   if (mimeType === 'application/pdf') {
     const result = await extractFullDocumentFromPdf(fileBuffer, documentType);
+    // Preferimos texto Document AI si es más completo (enriquece periodos en pipeline)
     if (dai?.text && dai.text.length > (result.rawText?.length ?? 0)) {
-      // Preferimos texto Document AI si es más completo; la visión/IA ya corrió
-      return { ...result, rawText: dai.text, confidence: Math.max(result.confidence, dai.confidence) };
+      return {
+        ...result,
+        rawText: dai.text,
+        confidence: Math.max(result.confidence, dai.confidence),
+      };
     }
     return result;
   }
 
   if (mimeType.startsWith('image/')) {
-    return extractFullDocumentFromImage(fileBuffer, mimeType, documentType);
+    const result = await extractFullDocumentFromImage(fileBuffer, mimeType, documentType);
+    if (dai?.text?.trim()) {
+      return {
+        ...result,
+        rawText: [result.rawText, dai.text].filter(Boolean).join('\n'),
+        confidence: Math.max(result.confidence, dai.confidence),
+      };
+    }
+    return result;
   }
 
   throw new Error(`Formato no soportado: ${mimeType}`);

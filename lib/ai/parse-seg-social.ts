@@ -122,12 +122,32 @@ export function extractSpanishNumber(text: string, patterns: RegExp[]): number |
 /** Toma el mayor total de días de cotización (evita periodos parciales de 5 meses, etc.). */
 function extractTotalDiasCotizacion(text: string): number | null {
   const pattern =
-    /total\s*(?:de\s*)?d[ií]as\s*(?:de\s*)?cotizaci[oó]n[^\d\n]{0,40}(\d[\d.,]*)/gi;
+    /total\s*(?:de\s*)?d[ií]as\s*(?:de\s*)?(?:cotizaci[oó]n|en\s*alta)[^\d\n]{0,40}(\d[\d.,]*)/gi;
   let max = 0;
 
   for (const match of text.matchAll(pattern)) {
     const n = parseSpanishNumber(match[1]);
     if (n != null && n > max && n <= 45000) max = n;
+  }
+
+  // Layout Import@ss: etiqueta en una línea, cifra en la siguiente
+  if (max === 0) {
+    const ls = lines(text);
+    for (let i = 0; i < ls.length; i++) {
+      if (!/total\s*(?:de\s*)?d[ií]as\s*(?:de\s*)?(?:cotizaci[oó]n|en\s*alta)/i.test(ls[i])) {
+        continue;
+      }
+      const same = ls[i].match(/(\d[\d.,]*)\s*$/);
+      if (same) {
+        const n = parseSpanishNumber(same[1]);
+        if (n != null && n > max && n <= 45000) max = n;
+      }
+      const next = ls[i + 1]?.match(/^(\d[\d.,]+)\s*$/);
+      if (next) {
+        const n = parseSpanishNumber(next[1]);
+        if (n != null && n > max && n <= 45000) max = n;
+      }
+    }
   }
 
   if (max > 0) return max;

@@ -158,7 +158,7 @@ export async function uploadConsultationDocumentAction(formData: FormData) {
 
     try {
       const downloaded = await downloadDocument(storagePath);
-      const expediente = await runConsultationPipeline({
+      const { expediente, ocr, detectedType, replacedDocs } = await runConsultationPipeline({
         founderId: profile.id,
         caseId,
         documentId: doc.id,
@@ -170,11 +170,26 @@ export async function uploadConsultationDocumentAction(formData: FormData) {
 
       await supabase
         .from('documents')
-        .update({ ocr_status: 'completed', ocr_error: null })
+        .update({
+          ocr_status: 'completed',
+          ocr_error: null,
+          ocr_data: ocr,
+          ocr_confidence: ocr.confidence,
+          document_type: detectedType,
+        })
         .eq('id', doc.id);
 
+      if (replacedDocs.length > 0) {
+        const { deleteDocumentRows } = await import('@/lib/documents/replace-same-type');
+        await deleteDocumentRows(supabase, profile.id, replacedDocs);
+      }
+
       revalidateAsesoria(caseId);
-      return { success: true as const, completitud: expediente.completitud.score };
+      return {
+        success: true as const,
+        completitud: expediente.completitud.score,
+        replaced: replacedDocs.length,
+      };
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Error al procesar';
       await supabase
@@ -207,12 +222,16 @@ export async function updateLifePathAction(caseId: string, formData: FormData) {
     const subsidioActive = formData.get('subsidio52Active') === 'on';
     const subsidioFrom = String(formData.get('subsidioMayores52From') ?? '2099-01');
     const desempleoBase = Number(formData.get('desempleoBaseAntesSubsidio') ?? 0);
+    const desempleoFromRaw = String(formData.get('desempleoBaseFrom') ?? '').trim();
+    const desempleoBaseFrom =
+      /^\d{4}-\d{2}$/.test(desempleoFromRaw) && desempleoBase > 0 ? desempleoFromRaw : null;
 
     const lifePath: LifePathAssumptions = {
       currentlyUnemployed: unemployed,
       subsidioMayores52From: subsidioActive ? subsidioFrom : '2099-01',
       subsidioCotizacionBase: null,
       desempleoBaseAntesSubsidio: Number.isFinite(desempleoBase) ? desempleoBase : 0,
+      desempleoBaseFrom,
     };
 
     await saveConsultationLifePath(caseId, profile.id, lifePath);

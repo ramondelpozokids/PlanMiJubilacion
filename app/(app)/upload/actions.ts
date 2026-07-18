@@ -190,9 +190,17 @@ export async function uploadAndProcessDocument(formData: FormData) {
 
       if (updateError) throw new Error(updateError.message);
 
+      if (result.replacedDocs.length > 0) {
+        const { deleteDocumentRows } = await import('@/lib/documents/replace-same-type');
+        await deleteDocumentRows(supabase, user.id, result.replacedDocs);
+      }
+
       revalidatePath('/dashboard');
       revalidatePath('/analysis');
       revalidatePath('/upload');
+      revalidatePath('/vida-laboral');
+      revalidatePath('/jubilacion');
+      revalidatePath('/prestaciones');
 
       return {
         success: true as const,
@@ -201,6 +209,7 @@ export async function uploadAndProcessDocument(formData: FormData) {
         expedienteScore: result.expediente.completitud.score,
         fieldsExtracted: countFullExtractionFields(result.ocrData),
         discrepancies: result.expediente.discrepancies.length,
+        replaced: result.replacedDocs.length,
       };
     } catch (error) {
       console.error('Error procesando documento:', error);
@@ -246,6 +255,9 @@ export async function reprocessDocumentById(documentId: string) {
     revalidatePath('/analysis');
     revalidatePath('/upload');
     revalidatePath('/comparator');
+    revalidatePath('/vida-laboral');
+    revalidatePath('/jubilacion');
+    revalidatePath('/prestaciones');
 
     return {
       success: true as const,

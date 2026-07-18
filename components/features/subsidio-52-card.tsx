@@ -55,13 +55,28 @@ function CompareRow({
   );
 }
 
-export function Subsidio52Card({ outlook }: { outlook: RetirementOutlook }) {
+export function Subsidio52Card({
+  outlook,
+  variant = 'self',
+}: {
+  outlook: RetirementOutlook;
+  variant?: 'self' | 'consultation';
+}) {
   const pipe = outlook.erpPipeline;
   const s = pipe.projection;
   const cfg = s.config;
   const c = pipe.comparativa;
   const informe = pipe.informe;
   const pct = (cfg.subsidioPercentOfIprem * 100).toFixed(0);
+  const ingresoLabel = variant === 'consultation' ? 'Lo que ingresa' : 'Lo que ingresas';
+  const escenarioLabel =
+    variant === 'consultation'
+      ? 'Desempleo → subsidio +52 (esta persona)'
+      : c.tuEscenario.label;
+  const ssNote =
+    variant === 'consultation'
+      ? 'La simulación SS asume empleo continuo (referencia, no el escenario del cliente).'
+      : 'La simulación SS asume empleo continuo (referencia, no tu caso).';
 
   return (
     <Card className="print-root overflow-hidden">
@@ -69,7 +84,7 @@ export function Subsidio52Card({ outlook }: { outlook: RetirementOutlook }) {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-              Escenario vital
+              {variant === 'consultation' ? 'Escenario del cliente' : 'Escenario vital'}
             </p>
             <CardTitle className="mt-1 text-xl tracking-tight">
               Subsidio mayores de 52 años
@@ -93,7 +108,7 @@ export function Subsidio52Card({ outlook }: { outlook: RetirementOutlook }) {
       <CardContent className="space-y-6 pt-6">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Metric
-            label="Lo que ingresas"
+            label={ingresoLabel}
             value={formatCurrencyExact(s.monthly.bruto)}
             hint={`${pct}% del IPREM (${formatCurrencyExact(cfg.ipremMonthly)}) · bruto = neto en cuenta`}
             emphasize
@@ -122,7 +137,7 @@ export function Subsidio52Card({ outlook }: { outlook: RetirementOutlook }) {
 
         <CollapsibleSection title="Comparativa de escenarios" defaultOpen>
           <CompareRow
-            label={c.tuEscenario.label}
+            label={escenarioLabel}
             value={
               c.tuEscenario.pensionMensual != null
                 ? formatCurrencyExact(c.tuEscenario.pensionMensual)
@@ -152,7 +167,7 @@ export function Subsidio52Card({ outlook }: { outlook: RetirementOutlook }) {
               ? `${c.deltas.vsFreeze >= 0 ? '+' : ''}${formatCurrencyExact(c.deltas.vsFreeze)}/mes`
               : '—'}
             {' · '}
-            La simulación SS asume empleo continuo (referencia, no tu caso).
+            {ssNote}
           </p>
         </CollapsibleSection>
 

@@ -95,3 +95,23 @@ export async function listUserBillingDocuments(userId: string): Promise<BillingD
     createdAt: r.created_at ?? '',
   }));
 }
+
+/** Borra documentos del historial propios (factura / recibo / portada). */
+export async function deleteUserBillingDocuments(
+  userId: string,
+  ids: string[]
+): Promise<{ deleted: number }> {
+  const unique = [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
+  if (unique.length === 0) return { deleted: 0 };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('billing_documents')
+    .delete()
+    .eq('user_id', userId)
+    .in('id', unique)
+    .select('id');
+
+  if (error) throw new Error(error.message);
+  return { deleted: data?.length ?? 0 };
+}

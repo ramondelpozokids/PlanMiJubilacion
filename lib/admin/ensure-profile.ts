@@ -1,8 +1,8 @@
 import { createServiceClient } from '@/lib/supabase/service';
-import { getAdminProfile, isAdminEmail } from '@/lib/admin/config';
+import { FOUNDER_DISPLAY_NAME, getAdminProfile, isAdminEmail } from '@/lib/admin/config';
 import { isSupabaseConfigured } from '@/lib/supabase/env';
 
-/** Garantiza perfil admin con acceso ilimitado y gratuito. */
+/** Garantiza perfil admin con acceso ilimitado y nombre del fundador. */
 export async function ensureAdminProfile(userId: string, email: string | undefined) {
   if (!email || !isAdminEmail(email)) return;
   if (!isSupabaseConfigured()) return;
@@ -17,6 +17,7 @@ export async function ensureAdminProfile(userId: string, email: string | undefin
       {
         id: userId,
         email: admin.email,
+        full_name: FOUNDER_DISPLAY_NAME,
         subscription_status: 'admin',
         subscription_plan_id: 'founder_unlimited',
       },

@@ -2,20 +2,20 @@
   "_comment": "Motor Económico central MIOP. Año vacío {} hereda. Coeficientes anticipada oficiales: lib/rules/early-retirement/tables/ (art. 207/208 BOE). earlyCoefficients queda legacy y no alimenta el motor.",
   "2026": {
     "iprem": 610,
-    "smi": 1381,
+    "smi": 1221,
     "maxPensionMonthly": 3267.6,
     "minPension65NoSpouse": 1033.3,
     "baseMinimaRG": 1424.4,
     "baseMaximaRG": 5101.2,
     "subsidio52": {
-      "pctIprem": 0.95,
-      "baseCotizacion": 1780.62,
+      "pctIprem": 0.8,
+      "baseCotizacion": 1780.5,
       "cotizacionPct": 1.25,
       "irpfDefecto": 0
     },
     "convenioEspecial": {
       "cuotaPctSobreBase": 0.283,
-      "baseMinimaDefault": 1780.62,
+      "baseMinimaDefault": 1780.5,
       "baseMaximaDefault": 5101.2
     },
     "irpf": {

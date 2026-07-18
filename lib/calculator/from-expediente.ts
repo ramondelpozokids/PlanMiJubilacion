@@ -122,8 +122,13 @@ export function canCalculateFromExpediente(expediente: ExpedienteDigital): boole
 
 export function expedienteDataStats(expediente: ExpedienteDigital) {
   const bases = listDocumentedBases(expediente);
+  const sumaBases = Math.round(bases.reduce((a, b) => a + b.base, 0) * 100) / 100;
+  const mediaBases =
+    bases.length > 0 ? Math.round((sumaBases / bases.length) * 100) / 100 : null;
   return {
     basesDocumentadas: bases.length,
+    sumaBasesDocumentadas: sumaBases,
+    mediaBasesDocumentadas: mediaBases,
     primeraBase: bases[0]?.periodKey ?? null,
     ultimaBase: bases[bases.length - 1]?.periodKey ?? null,
     periodosLaborales: expediente.periodos.length,

@@ -111,8 +111,25 @@ function mergeIdentificacion(
   const id = payload.identificacion;
   const d = exp.discrepancies;
 
+  // Mi plan del fundador: no dejar que un PDF de familiar (p. ej. Carlos) pise identidad.
+  const lockedFounder =
+    typeof exp.identificacion.nombre?.value === 'string' &&
+    /ram[oó]n/i.test(exp.identificacion.nombre.value) &&
+    /del\s*pozo/i.test(exp.identificacion.nombre.value);
+
   const set = (key: keyof IdentificacionExpediente, val: string | number | null | undefined) => {
     if (val == null) return;
+    if (
+      lockedFounder &&
+      (key === 'nombre' ||
+        key === 'dni' ||
+        key === 'nie' ||
+        key === 'fechaNacimiento' ||
+        key === 'edad' ||
+        key === 'numeroAfiliacion')
+    ) {
+      return;
+    }
     const incoming = { value: val, sources: [source] } as SourcedValue<string | number>;
     const merged = mergeSourcedScalar(
       exp.identificacion[key] as SourcedValue<string | number> | null,

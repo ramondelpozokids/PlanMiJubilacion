@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { getProfile } from '@/lib/supabase/server';
 import { hasUnlimitedAccess } from '@/lib/admin/access';
 import { issueBillingDocuments } from '@/lib/billing/issue';
+import { deleteUserBillingDocuments } from '@/lib/billing/repository';
 import type { DiscountMode, ServiceKey } from '@/lib/international-coordination/types';
 
 const SERVICE_KEYS: ServiceKey[] = [
@@ -58,4 +59,20 @@ export async function issueDocumentsAction(formData: FormData) {
 
   revalidatePath('/informes');
   return result;
+}
+
+export async function deleteBillingDocumentsAction(ids: string[]) {
+  const profile = await getProfile();
+  if (!profile) return { success: false as const, error: 'No autenticado' };
+
+  try {
+    const { deleted } = await deleteUserBillingDocuments(profile.id, ids);
+    revalidatePath('/informes');
+    return { success: true as const, deleted };
+  } catch (e) {
+    return {
+      success: false as const,
+      error: e instanceof Error ? e.message : 'No se pudieron borrar',
+    };
+  }
 }

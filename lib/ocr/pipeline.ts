@@ -21,7 +21,15 @@ import { recalculateFromExpediente } from '@/lib/calculator/recalculate';
 import { enrichBasesFromRawText } from '@/lib/ocr/enrich-bases';
 import { enrichResolucionFromRawText } from '@/lib/ocr/enrich-resolucion';
 import { enrichSimulacionFromRawText } from '@/lib/ocr/enrich-simulacion';
+import { enrichVidaLaboralFromRawText } from '@/lib/ocr/enrich-vida-laboral';
 import { hashDocumentContent } from '@/lib/ocr/content-hash';
+import { createClient } from '@/lib/supabase/server';
+import {
+  isReplaceableDocumentType,
+  listSameTypeDocuments,
+  stripDocumentsFromExpediente,
+  type SameTypeDocRow,
+} from '@/lib/documents/replace-same-type';
 
 export interface PipelineInput {
   userId: string;
@@ -37,6 +45,7 @@ export interface PipelineResult {
   detectedType: DocumentTypeKey;
   normalized: NormalizedDocumentPayload;
   expediente: ExpedienteDigital;
+  replacedDocs: SameTypeDocRow[];
 }
 
 async function extractDocument(
@@ -101,7 +110,13 @@ export async function runDocumentPipeline(input: PipelineInput): Promise<Pipelin
   );
 
   const ocr = enrichSimulacionFromRawText(
-    enrichResolucionFromRawText(enrichBasesFromRawText(ocrRaw, detectedType), detectedType),
+    enrichResolucionFromRawText(
+      enrichBasesFromRawText(
+        enrichVidaLaboralFromRawText(ocrRaw, detectedType),
+        detectedType
+      ),
+      detectedType
+    ),
     detectedType
   );
 
@@ -115,6 +130,23 @@ export async function runDocumentPipeline(input: PipelineInput): Promise<Pipelin
   let expediente = await loadExpediente(input.userId);
   if (!expediente) expediente = emptyExpediente(input.userId);
 
+  let replacedDocs: SameTypeDocRow[] = [];
+  if (isReplaceableDocumentType(detectedType)) {
+    const supabase = await createClient();
+    replacedDocs = await listSameTypeDocuments(supabase, {
+      userId: input.userId,
+      documentType: detectedType,
+      consultationCaseId: null,
+      excludeDocumentId: input.documentId,
+    });
+    if (replacedDocs.length > 0) {
+      expediente = stripDocumentsFromExpediente(
+        expediente,
+        replacedDocs.map((d) => d.id)
+      );
+    }
+  }
+
   expediente = mergeDocumentIntoExpediente(
     expediente,
     normalized,
@@ -127,7 +159,7 @@ export async function runDocumentPipeline(input: PipelineInput): Promise<Pipelin
   // Cálculo separado del OCR: escribe scenarios a partir del expediente SoT
   await recalculateFromExpediente(input.userId, expediente);
 
-  return { ocrData: ocr, detectedType, normalized, expediente };
+  return { ocrData: ocr, detectedType, normalized, expediente, replacedDocs };
 }
 
 export async function rebuildExpedienteFromDocuments(userId: string): Promise<ExpedienteDigital> {
@@ -149,7 +181,10 @@ export async function rebuildExpedienteFromDocuments(userId: string): Promise<Ex
 
     const docType = normalizeDocumentType(doc.document_type);
     ocr = enrichSimulacionFromRawText(
-      enrichResolucionFromRawText(enrichBasesFromRawText(ocr, docType), docType),
+      enrichResolucionFromRawText(
+        enrichBasesFromRawText(enrichVidaLaboralFromRawText(ocr, docType), docType),
+        docType
+      ),
       docType
     );
     const normalized = normalizeExtraction(ocr, doc.id, doc.name, docType);

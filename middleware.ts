@@ -103,7 +103,18 @@ export async function middleware(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (isProtected && !user) {
+    const isSensitiveApi =
+      pathname.startsWith('/api/') &&
+      !pathname.startsWith('/api/auth/') &&
+      !pathname.startsWith('/api/stripe/webhook');
+
+    if ((isProtected || isSensitiveApi) && !user) {
+      if (isSensitiveApi) {
+        return withSecurityHeaders(
+          NextResponse.json({ error: 'No autenticado' }, { status: 401 }),
+          pathname
+        );
+      }
       const url = request.nextUrl.clone();
       url.pathname = '/login';
       url.searchParams.set('redirect', pathname);
@@ -118,8 +129,25 @@ export async function middleware(request: NextRequest) {
 
     return withSecurityHeaders(supabaseResponse, pathname);
   } catch (err) {
-    // Nunca tumbar el sitio entero por un fallo de auth/edge
+    // Fail-closed en rutas privadas: no dejar pasar sin sesión verificada
     console.error('middleware error:', err);
+    const isProtected = PROTECTED_PATHS.some((path) => pathname.startsWith(path));
+    const isSensitiveApi =
+      pathname.startsWith('/api/') &&
+      !pathname.startsWith('/api/auth/') &&
+      !pathname.startsWith('/api/stripe/webhook');
+    if (isSensitiveApi) {
+      return withSecurityHeaders(
+        NextResponse.json({ error: 'Auth no disponible' }, { status: 503 }),
+        pathname
+      );
+    }
+    if (isProtected) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      url.searchParams.set('error', 'auth_unavailable');
+      return withSecurityHeaders(NextResponse.redirect(url), pathname);
+    }
     return passThrough(request, pathname);
   }
 }

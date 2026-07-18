@@ -14,6 +14,11 @@ import {
   type EarlyRetirementResolution,
 } from '@/lib/rules/early-retirement';
 import { getActiveSsRules } from '@/lib/rules/ss-rules';
+import type { LifePathAssumptions } from '@/lib/calculator/life-path';
+import { FOUNDER_LIFE_PATH } from '@/lib/calculator/life-path';
+
+/** Pagas anuales de la pensión contributiva de jubilación (SS). */
+export const PENSION_ANNUAL_PAYMENTS = 14;
 
 export type JubilationModality =
   | 'ordinary'
@@ -33,9 +38,16 @@ export interface DateSimulationRow {
   monthsEarly: number;
   reductionPercent: number;
   monthlyPension: number | null;
+  /** Bruto anual = mensual × 14 pagas */
   annualPension: number | null;
+  annualPayments: number;
   baseReguladora: number | null;
   percentageByYears: number | null;
+  /** Retención IRPF aplicada (0–1) */
+  irpfRetention: number;
+  irpfMonthly: number | null;
+  netMonthly: number | null;
+  netAnnual: number | null;
   notes: string;
   /** Transparencia del cálculo oficial. */
   calculation?: EarlyRetirementResolution & {
@@ -44,6 +56,14 @@ export interface DateSimulationRow {
     finalMonthly: number | null;
     ordinaryMonthlyBeforeReduction: number | null;
   };
+}
+
+export interface BuildDateSimulationOptions {
+  declareInvoluntaryCause?: boolean;
+  /** Escenario vital del caso de asesoría (no el del fundador). */
+  lifePath?: LifePathAssumptions;
+  /** Retención IRPF 0–1 (p. ej. 0.15 = 15 %). Orientativa. */
+  irpfRetention?: number;
 }
 
 function parseBirth(expediente: ExpedienteDigital): Date | null {
@@ -86,10 +106,29 @@ function mapModality(
   }
 }
 
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+function applyIrpf(
+  monthly: number | null,
+  retention: number
+): { irpfMonthly: number | null; netMonthly: number | null; netAnnual: number | null } {
+  if (monthly == null) return { irpfMonthly: null, netMonthly: null, netAnnual: null };
+  const r = Math.min(0.5, Math.max(0, retention));
+  const irpfMonthly = round2(monthly * r);
+  const netMonthly = round2(monthly - irpfMonthly);
+  return {
+    irpfMonthly,
+    netMonthly,
+    netAnnual: round2(netMonthly * PENSION_ANNUAL_PAYMENTS),
+  };
+}
+
 export function buildDateSimulation(
   expediente: ExpedienteDigital,
   retirementDate: Date,
-  opts?: { declareInvoluntaryCause?: boolean }
+  opts?: BuildDateSimulationOptions
 ): DateSimulationRow | null {
   const birth = parseBirth(expediente);
   const monthsNow = monthsContributed(expediente);
@@ -103,12 +142,15 @@ export function buildDateSimulation(
     assumeContinueContributing: true,
   }).date;
 
+  const irpfRetention = Math.min(0.5, Math.max(0, opts?.irpfRetention ?? 0));
+
   const sim = simulateScenario(
     expediente,
     {
       name: 'Fecha elegida',
       retirementDate,
       scenarioType: 'custom',
+      lifePath: opts?.lifePath,
     },
     'custom'
   );
@@ -122,7 +164,6 @@ export function buildDateSimulation(
   const anticipation = computeAnticipation(ordinary, retirementDate);
   const rules = getActiveSsRules();
 
-  // Transparencia: misma resolución oficial que usa el motor (sin reaplicar sobre la pensión ya reducida)
   const resolution = resolveEarlyRetirement({
     ordinaryDate: ordinary,
     chosenDate: retirementDate,
@@ -130,7 +171,6 @@ export function buildDateSimulation(
     completeContributionMonthsAtChosen: Math.floor(monthsAtRet),
     declareInvoluntaryCause: opts?.declareInvoluntaryCause,
     rulesYear: retirementDate.getFullYear(),
-    // Si la pensión simulada ya está cerca/sobre el tope, DT34 puede aplicar
     theoreticalMonthlyExceedsMax:
       (sim.result.monthlyPension ?? 0) >= rules.maxPensionMonthly * 0.98,
   });
@@ -139,12 +179,17 @@ export function buildDateSimulation(
   const reductionPercent =
     resolution.coefficient?.reductionPercent ?? sim.reductionPercent;
 
-  // Pensión: la de simulateScenario (ya aplica tablas oficiales)
   const monthlyPension = sim.result.monthlyPension || null;
   const ordinaryBefore =
     monthlyPension != null && reductionPercent > 0
-      ? Math.round((monthlyPension / (1 - reductionPercent / 100)) * 100) / 100
+      ? round2(monthlyPension / (1 - reductionPercent / 100))
       : monthlyPension;
+
+  const annualPension =
+    monthlyPension != null
+      ? round2(monthlyPension * PENSION_ANNUAL_PAYMENTS)
+      : null;
+  const irpf = applyIrpf(monthlyPension, irpfRetention);
 
   return {
     label: 'Fecha seleccionada',
@@ -156,9 +201,14 @@ export function buildDateSimulation(
     monthsEarly: anticipation.monthsEarly,
     reductionPercent,
     monthlyPension,
-    annualPension: sim.result.annualPension || null,
+    annualPension,
+    annualPayments: PENSION_ANNUAL_PAYMENTS,
     baseReguladora: sim.result.baseReguladora || null,
     percentageByYears: sim.result.percentageByYears || null,
+    irpfRetention,
+    irpfMonthly: irpf.irpfMonthly,
+    netMonthly: irpf.netMonthly,
+    netAnnual: irpf.netAnnual,
     notes: resolution.notes.join(' ') || sim.notes,
     calculation: {
       ...resolution,
@@ -171,7 +221,8 @@ export function buildDateSimulation(
 }
 
 export function buildComparisonTable(
-  expediente: ExpedienteDigital
+  expediente: ExpedienteDigital,
+  opts?: BuildDateSimulationOptions
 ): DateSimulationRow[] {
   const birth = parseBirth(expediente);
   const monthsNow = monthsContributed(expediente);
@@ -196,7 +247,7 @@ export function buildComparisonTable(
   for (const o of offsets) {
     const date = addMonths(ordinary, o.months);
     if (date < today) continue;
-    const row = buildDateSimulation(expediente, date);
+    const row = buildDateSimulation(expediente, date, opts);
     if (row) rows.push({ ...row, label: o.label });
   }
   return rows;
@@ -230,7 +281,7 @@ export function personalStatsFromBirth(birthIso: string, asOf = new Date()) {
 
 export function getOutlookSafe(expediente: ExpedienteDigital) {
   try {
-    return buildRetirementOutlook(expediente);
+    return buildRetirementOutlook(expediente, new Date(), FOUNDER_LIFE_PATH);
   } catch {
     return null;
   }

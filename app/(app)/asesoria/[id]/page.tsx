@@ -21,12 +21,17 @@ import { RetirementOutlookCard } from '@/components/features/retirement-outlook-
 import { Subsidio52Card } from '@/components/features/subsidio-52-card';
 import { ExpedienteSections } from '@/components/features/expediente-sections';
 import { ConsultationRetirementCalendar } from '@/components/features/consultation-retirement-calendar';
+import { ConsultationDateSimulation } from '@/components/features/consultation-date-simulation';
 import { ConsultationMiopPodium } from '@/components/features/consultation-miop-podium';
 import { ConsultationClientReport } from '@/components/features/consultation-client-report';
 import { ConsultationCaseEditor } from '@/components/features/consultation-case-editor';
 import { listConsultationCases } from '@/lib/consultation/repository';
+import { ScopeBadge } from '@/components/features/scope-badge';
+import { buildRetirementPrintReport } from '@/lib/reports/build-retirement-print-report';
+import { RetirementPrintReport } from '@/components/features/retirement-print-report';
+import { format } from 'date-fns';
 
-export const metadata = { title: 'Consulta asesoría', robots: { index: false } };
+export const metadata = { title: 'Consulta de cliente', robots: { index: false } };
 export const dynamic = 'force-dynamic';
 
 export default async function AsesoriaCasePage({
@@ -62,20 +67,28 @@ export default async function AsesoriaCasePage({
       internationalCotizaciones: c.expediente.internationalCotizaciones,
     });
 
+  const printReport =
+    hasDocs &&
+    buildRetirementPrintReport(c.expediente, {
+      clientName: c.clientName,
+      lifePath: c.lifePath,
+    });
+
   const allCases = await listConsultationCases(profile.id);
 
   return (
     <div className="space-y-8 print-root max-w-7xl">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between print:hidden">
         <div>
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-            Asesoría fundador
-          </p>
-          <h1 className="text-3xl font-semibold tracking-tight">{c.clientName}</h1>
+          <ScopeBadge scope="consultation" clientName={c.clientName} />
+          <h1 className="mt-1 text-3xl font-semibold tracking-tight">{c.clientName}</h1>
           {c.clientNote && (
             <p className="mt-2 text-sm text-muted-foreground">{c.clientNote}</p>
           )}
-          <div className="mt-3 no-print">
+          <p className="mt-2 rounded-lg border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground max-w-xl">
+            Expediente del cliente. No es tu plan personal (Mi plan → Jubilación).
+          </p>
+          <div className="mt-3">
             <ConsultationCaseEditor
               compact
               caseMeta={{
@@ -91,79 +104,100 @@ export default async function AsesoriaCasePage({
             {new Date(c.updatedAt).toLocaleString('es-ES')}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 print:hidden">
-          <PrintButton label="Imprimir informe completo" />
+        <div className="flex flex-wrap gap-2">
+          <PrintButton label="Imprimir informe PDF" variant="primary" />
           <Link href="/asesoria/consultas">
             <Button size="sm" variant="secondary">
-              Volver
+              Volver a consultas
+            </Button>
+          </Link>
+          <Link href="/jubilacion">
+            <Button size="sm" variant="ghost">
+              Mi plan
             </Button>
           </Link>
         </div>
       </div>
 
-      <ConsultationLifePathForm caseId={c.id} lifePath={c.lifePath} />
+      <div className="print:hidden space-y-8">
+        <ConsultationLifePathForm caseId={c.id} lifePath={c.lifePath} />
 
-      <InternationalCotizacionesWizard
-        caseId={c.id}
-        initial={c.expediente.internationalCotizaciones ?? null}
-      />
-
-      <div className="no-print">
-        <ConsultationManager
-          cases={allCases.map((x) => ({
-            id: x.id,
-            clientName: x.clientName,
-            clientNote: x.clientNote,
-            clientBirthDate: x.clientBirthDate,
-          }))}
-          uploadOnly
+        <InternationalCotizacionesWizard
+          caseId={c.id}
+          initial={c.expediente.internationalCotizaciones ?? null}
         />
-        <p className="mt-2 text-xs text-muted-foreground">
-          Tip: para la carta alemana (u otro país) elija el tipo «Pensión / carta extranjera» al
-          subir el PDF, e introduzca el importe en el asistente de arriba.
-        </p>
+
+        <div>
+          <ConsultationManager
+            cases={allCases.map((x) => ({
+              id: x.id,
+              clientName: x.clientName,
+              clientNote: x.clientNote,
+              clientBirthDate: x.clientBirthDate,
+            }))}
+            uploadOnly
+          />
+          <p className="mt-2 text-xs text-muted-foreground">
+            Tip: para la carta alemana (u otro país) elija el tipo «Pensión / carta extranjera» al
+            subir el PDF, e introduzca el importe en el asistente de arriba.
+          </p>
+        </div>
       </div>
 
       {!hasDocs && !intl ? (
-        <p className="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
+        <p className="rounded-lg border border-dashed p-8 text-center text-muted-foreground print:hidden">
           Sube vida laboral, bases, simulación o nómina, y completa el apartado internacional si
           ha cotizado fuera de España.
         </p>
       ) : (
         <>
-          {summaryLines && (
-            <ConsultationClientReport clientName={c.clientName} lines={summaryLines} />
+          {printReport && (
+            <RetirementPrintReport report={printReport} variant="consultation" />
           )}
 
-          {combined && (
-            <CombinedInternationalPensionCard summary={combined} clientName={c.clientName} />
-          )}
+          <div className="print:hidden space-y-8">
+            {summaryLines && (
+              <ConsultationClientReport clientName={c.clientName} lines={summaryLines} />
+            )}
 
-          {intl && <InternationalCotizacionesReport result={intl} />}
+            {combined && (
+              <CombinedInternationalPensionCard summary={combined} clientName={c.clientName} />
+            )}
 
-          {outlook && (
-            <>
-              <RetirementOutlookCard
-                outlook={outlook}
-                variant="consultation"
-                clientName={c.clientName}
-              />
-              {isSubsidio52Active(c.lifePath) && <Subsidio52Card outlook={outlook} />}
-              <ConsultationRetirementCalendar
-                milestones={calendar}
-                clientName={c.clientName}
-              />
-            </>
-          )}
+            {intl && <InternationalCotizacionesReport result={intl} />}
 
-          {miop && <ConsultationMiopPodium miop={miop} />}
+            {outlook && (
+              <>
+                <RetirementOutlookCard
+                  outlook={outlook}
+                  variant="consultation"
+                  clientName={c.clientName}
+                />
+                {isSubsidio52Active(c.lifePath) && (
+                  <Subsidio52Card outlook={outlook} variant="consultation" />
+                )}
+                <ConsultationDateSimulation
+                  expediente={c.expediente}
+                  lifePath={c.lifePath}
+                  clientName={c.clientName}
+                  defaultDateIso={format(outlook.ordinary.date, 'yyyy-MM-dd')}
+                />
+                <ConsultationRetirementCalendar
+                  milestones={calendar}
+                  clientName={c.clientName}
+                />
+              </>
+            )}
 
-          {hasDocs && (
-            <section className="space-y-3">
-              <h2 className="text-lg font-semibold">Expediente documental</h2>
-              <ExpedienteSections expediente={c.expediente} outlook={null} />
-            </section>
-          )}
+            {miop && <ConsultationMiopPodium miop={miop} />}
+
+            {hasDocs && (
+              <section className="space-y-3">
+                <h2 className="text-lg font-semibold">Expediente documental</h2>
+                <ExpedienteSections expediente={c.expediente} outlook={null} />
+              </section>
+            )}
+          </div>
         </>
       )}
 

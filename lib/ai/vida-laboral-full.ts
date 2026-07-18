@@ -8,6 +8,7 @@ import {
   computeAge,
   cleanPersonName,
 } from '@/lib/ai/parse-seg-social';
+import { parseVidaLaboralFromText } from '@/lib/ai/parse-vida-laboral';
 import {
   requireOpenAiApiKey,
   isOpenAiConfigured,
@@ -496,7 +497,7 @@ export function toFullDocumentExtraction(
   };
 }
 
-/** Sin OpenAI: solo texto del PDF (datos básicos, sin tablas completas). */
+/** Sin OpenAI: texto PDF + parser determinista de periodos (misma vía que enrich). */
 async function extractLocalFallbackFromPdf(
   fileBuffer: Buffer,
   documentType: string
@@ -508,38 +509,48 @@ async function extractLocalFallbackFromPdf(
     throw new Error(getOpenAiStatus().message);
   }
 
+  const parsed = parseVidaLaboralFromText(rawText, documentType);
   const ss = parseSegSocialDocument(rawText);
   const informe = mergeVidaLaboral(emptyVidaLaboral(documentType), {
     identificacion: {
-      nombre: cleanPersonName(ss.nombre),
-      dni: ss.dni,
+      nombre: cleanPersonName(parsed.identificacion.nombre ?? ss.nombre),
+      dni: parsed.identificacion.dni ?? ss.dni,
       nie: null,
-      numeroAfiliacion: ss.naf,
-      fechaNacimiento: ss.fechaNacimiento,
-      edad: computeAge(ss.fechaNacimiento),
+      numeroAfiliacion: parsed.identificacion.numeroAfiliacion ?? ss.naf,
+      fechaNacimiento: parsed.identificacion.fechaNacimiento ?? ss.fechaNacimiento,
+      edad: computeAge(parsed.identificacion.fechaNacimiento ?? ss.fechaNacimiento),
       direccion: null,
       localidad: null,
       provincia: null,
       codigoPostal: null,
     },
     resumen: {
-      totalDiasCotizacion: ss.diasCotizados,
-      anosCotizados: ss.anosCotizados,
-      mesesCotizados: ss.mesesCotizados,
+      totalDiasCotizacion: parsed.resumen.totalDiasCotizacion ?? ss.diasCotizados,
+      anosCotizados: parsed.resumen.anosCotizados ?? ss.anosCotizados,
+      mesesCotizados: parsed.resumen.mesesCotizados ?? ss.mesesCotizados,
       diasRestantes: null,
-      regimenPrincipal: ss.regimen,
-      situacionActual: null,
-      fechaInforme: null,
+      regimenPrincipal: parsed.resumen.regimenPrincipal ?? ss.regimen,
+      situacionActual: parsed.resumen.situacionActual,
+      fechaInforme: parsed.resumen.fechaInforme,
     },
+    periodosContrato: parsed.periodosContrato,
+    periodosAutonomo: parsed.periodosAutonomo,
+    situacionesAsimiladas: parsed.situacionesAsimiladas,
+    prestacionesDesempleo: parsed.prestacionesDesempleo,
     paginasProcesadas: totalPages,
     otrosDatos: {
       modo: 'local_sin_openai',
       aviso: getOpenAiStatus().message,
       textoExtraidoCaracteres: rawText.length,
+      periodosDesdeTexto:
+        parsed.periodosContrato.length +
+        parsed.periodosAutonomo.length +
+        parsed.situacionesAsimiladas.length,
     },
   });
 
-  return toFullDocumentExtraction(informe, rawText, 0.35);
+  const hasPeriodos = informe.totalPeriodosExtraidos > 0;
+  return toFullDocumentExtraction(informe, rawText, hasPeriodos ? 0.75 : 0.4);
 }
 
 /** Lectura exhaustiva del PDF completo. */
@@ -585,21 +596,46 @@ async function extractFullDocumentFromPdfWithOpenAi(
       throw new Error('No se pudo leer el PDF.');
     }
 
-    let informe = emptyVidaLaboral(documentType);
-    informe.paginasProcesadas = totalPages;
+    // Semilla determinista: identidad + periodos del texto PDF (fiable en Import@ss)
+    const localParsed = parseVidaLaboralFromText(rawText, documentType);
+    let informe = mergeVidaLaboral(emptyVidaLaboral(documentType), {
+      ...localParsed,
+      identificacion: {
+        ...localParsed.identificacion,
+        nombre: cleanPersonName(localParsed.identificacion.nombre),
+        edad: computeAge(localParsed.identificacion.fechaNacimiento),
+      },
+      paginasProcesadas: totalPages,
+      otrosDatos: {
+        periodosDesdeTexto:
+          localParsed.periodosContrato.length +
+          localParsed.periodosAutonomo.length +
+          localParsed.situacionesAsimiladas.length,
+      },
+    });
 
     const textChunks = splitTextBySize(rawText, 45000);
 
     for (let i = 0; i < textChunks.length; i++) {
-      const partial = await extractFromTextChunk(textChunks[i], documentType, {
-        includeIdentificacion: i === 0,
-        chunkLabel: `${i + 1}/${textChunks.length}`,
-      });
-      informe = mergeVidaLaboral(informe, partial);
+      try {
+        const partial = await extractFromTextChunk(textChunks[i], documentType, {
+          includeIdentificacion: i === 0,
+          chunkLabel: `${i + 1}/${textChunks.length}`,
+        });
+        informe = mergeVidaLaboral(informe, partial);
+      } catch (err) {
+        if (isOpenAiQuotaError(err)) throw err;
+        console.warn('Text chunk OCR failed', i, err);
+      }
     }
 
-    // Visión en páginas — complementa el texto (mismo parser que el fundador)
-    if (totalPages > 0) {
+    // Visión solo si el texto no aportó periodos suficientes (PDF escaneado / tablas rotas)
+    const needVision =
+      informe.totalPeriodosExtraidos < 3 &&
+      totalPages > 0 &&
+      totalPages <= 20;
+
+    if (needVision) {
       const allPages = Array.from({ length: totalPages }, (_, i) => i + 1);
       for (const batch of chunk(allPages, 3)) {
         try {

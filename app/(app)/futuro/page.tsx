@@ -8,7 +8,10 @@ import { runMiop } from '@/lib/optimization/run';
 import { PLANMI_PRODUCTS, getPlanMiProduct } from '@/lib/planmi/products';
 import { ProductPageHeader, EmptyProductState } from '@/components/features/planmi-suite';
 import { PrintButton } from '@/components/features/print-button';
+import { ScopeBadge } from '@/components/features/scope-badge';
 import { formatCurrency } from '@/lib/utils';
+import { FOUNDER_LIFE_PATH } from '@/lib/calculator/life-path';
+import { buildRetirementOutlook } from '@/lib/calculator/retirement-outlook';
 
 export const metadata = { title: 'PlanMiFuturo', robots: { index: false } };
 
@@ -19,22 +22,27 @@ export default async function FuturoPage() {
   const hasDocs = Boolean(expediente && expediente.documentIds.length > 0);
   const miop = hasDocs ? runMiop(expediente!, new Date(), 'standard') : null;
   const top = miop?.podium[0] ?? null;
+  const outlook = hasDocs
+    ? buildRetirementOutlook(expediente!, new Date(), FOUNDER_LIFE_PATH)
+    : null;
 
   return (
     <div className="space-y-6 print-root max-w-7xl">
-      <ProductPageHeader
-        name={product.name}
-        tagline={product.tagline}
-        actions={
-          <>
-            <PrintButton label="Imprimir" />
-            <Link href="/miop">
-              <Button size="sm">Abrir MIOP</Button>
-            </Link>
-          </>
-        }
-      />
-
+      <div className="space-y-2 print:hidden">
+        <ScopeBadge scope="personal" />
+        <ProductPageHeader
+          name={product.name}
+          tagline={`${product.tagline} · Ramón del Pozo Rott · ordinaria ${outlook?.ordinary.dateLabel ?? '2032'}`}
+          actions={
+            <>
+              <PrintButton label="Imprimir" />
+              <Link href="/miop">
+                <Button size="sm">Abrir MIOP</Button>
+              </Link>
+            </>
+          }
+        />
+      </div>
       <section className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-accent/15 via-background to-foreground/[0.03] p-6 sm:p-8">
         <div
           className="pointer-events-none absolute -right-10 top-0 h-40 w-40 rounded-full bg-accent/25 blur-3xl motion-reduce:hidden"

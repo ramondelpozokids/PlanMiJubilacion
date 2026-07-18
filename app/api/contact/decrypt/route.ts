@@ -8,6 +8,7 @@ import {
   bufToB64,
 } from '@/lib/crypto/contact-files';
 import type { ContactAttachmentMeta } from '@/lib/contact/repository';
+import { rateLimit } from '@/lib/security/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +20,14 @@ export async function GET(request: Request) {
   const profile = await getProfile();
   if (!profile || !hasUnlimitedAccess(profile)) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+  }
+
+  const limited = rateLimit(`contact-decrypt:${profile.id}`, { limit: 40, windowMs: 60_000 });
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: 'Demasiadas peticiones. Espera un momento.' },
+      { status: 429, headers: { 'Retry-After': String(limited.retryAfterSec) } }
+    );
   }
 
   const { searchParams } = new URL(request.url);

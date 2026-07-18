@@ -1,7 +1,8 @@
 /**
  * Reglas subsidio mayores de 52 — lee `subsidio-52-params.json`.
  *
- * Cadena ERP: IPREM × subsidio52 → bruto → neto → baseMinima → impacto → comparativa → informe
+ * Cadena ERP: IPREM × 80% → bruto (=neto) → baseMinima × 125% → impacto → comparativa → informe
+ * Norma: LGSS art. 280.3 (RDL 8/2019) + Orden de cotización del ejercicio (tope mínimo).
  * Año vacío {} = hereda. Cambias el JSON → outlook/recalculate refresca todo.
  */
 import rawFile from './subsidio-52-params.json';
@@ -11,10 +12,12 @@ export type LegalStatus = 'official' | 'provisional';
 export interface Subsidio52RawParams {
   iprem?: number;
   smi?: number;
+  /** Tope mínimo / base mínima RG (€/mes), SIN el 125 %. */
   baseMinima?: number;
   subsidio52?: number;
   /** Importe mensual oficial (12 pagas). Si existe, sustituye IPREM × %. */
   importeMensual?: number;
+  /** Multiplicador legal sobre el tope mínimo (1.25 = 125 %). */
   cotizacion52?: number;
   irpfDefecto?: number;
 }
@@ -26,7 +29,9 @@ export interface Subsidio52YearConfig {
   subsidioPercentOfIprem: number;
   /** Importe mensual fijado en JSON (p. ej. 480 €). */
   subsidioMensualFijo: number | null;
+  /** Tope mínimo RG vigente (€/mes). */
   baseMinimaRegimenGeneral: number;
+  /** 1.25 según LGSS art. 280.3 */
   cotizacionPercentOfMinima: number;
   irpfRetentionRate: number;
   smiMonthly14: number;
@@ -37,7 +42,13 @@ export interface Subsidio52YearConfig {
 
 const RENT_LIMIT_PCT = 0.75;
 
-/** Solo claves YYYY (ignora `_comment`). */
+const OFFICIAL_SOURCES = [
+  'LGSS art. 280.3 (RDL 8/2019, BOE-A-2019-3481): 125% del tope mínimo',
+  'Orden PJC/297/2026 (BOE-A-2026-7296): tope mínimo 1.424,40 €/mes',
+  'lib/rules/subsidio-52-params.json',
+];
+
+/** Solo claves YYYY (ignora `_comment` / `_sources`). */
 export function yearParamsMap(): Record<string, Subsidio52RawParams> {
   const out: Record<string, Subsidio52RawParams> = {};
   for (const [k, v] of Object.entries(rawFile as Record<string, unknown>)) {
@@ -48,7 +59,9 @@ export function yearParamsMap(): Record<string, Subsidio52RawParams> {
   return out;
 }
 
-function isFilled(p: Subsidio52RawParams | undefined): p is Required<Subsidio52RawParams> {
+function isFilled(
+  p: Subsidio52RawParams | undefined
+): p is Required<Omit<Subsidio52RawParams, 'importeMensual'>> {
   if (!p) return false;
   return (
     p.iprem != null &&
@@ -60,17 +73,23 @@ function isFilled(p: Subsidio52RawParams | undefined): p is Required<Subsidio52R
   );
 }
 
+type FilledRaw = Required<Omit<Subsidio52RawParams, 'importeMensual'>> & {
+  importeMensual?: number;
+};
+
 export function resolveRawParams(year: number): {
-  raw: Required<Subsidio52RawParams>;
+  raw: FilledRaw;
   inheritedFrom: number | null;
   status: LegalStatus;
 } {
   const PARAMS = yearParamsMap();
-  const years = Object.keys(PARAMS).map(Number).sort((a, b) => a - b);
+  const years = Object.keys(PARAMS)
+    .map(Number)
+    .sort((a, b) => a - b);
 
   if (isFilled(PARAMS[String(year)])) {
     return {
-      raw: PARAMS[String(year)] as Required<Subsidio52RawParams>,
+      raw: PARAMS[String(year)] as FilledRaw,
       inheritedFrom: null,
       status: 'official',
     };
@@ -85,7 +104,7 @@ export function resolveRawParams(year: number): {
   }
 
   return {
-    raw: PARAMS[String(sourceYear)] as Required<Subsidio52RawParams>,
+    raw: PARAMS[String(sourceYear)] as FilledRaw,
     inheritedFrom: sourceYear,
     status: 'provisional',
   };
@@ -93,7 +112,7 @@ export function resolveRawParams(year: number): {
 
 function toConfig(
   year: number,
-  raw: Required<Subsidio52RawParams> & { importeMensual?: number | undefined },
+  raw: FilledRaw,
   status: LegalStatus,
   inheritedFrom: number | null
 ): Subsidio52YearConfig {
@@ -101,12 +120,13 @@ function toConfig(
     raw.importeMensual != null
       ? round2(raw.importeMensual)
       : round2(raw.iprem * raw.subsidio52);
+  const baseCot = round2(raw.baseMinima * raw.cotizacion52);
   const notes =
     inheritedFrom != null
-      ? `${year}: ficha vacía → hereda ${inheritedFrom}. Subsidio ${bruto} €/mes · base cotización ${raw.baseMinima} €.`
+      ? `${year}: ficha vacía → hereda ${inheritedFrom}. Subsidio ${bruto} €/mes · cotiza ${baseCot} € (125% de ${raw.baseMinima}).`
       : raw.importeMensual != null
-        ? `${year}: ${bruto} €/mes (80% IPREM, 12 pagas). SEPE no retiene IRPF. Base cotización ${raw.baseMinima} €.`
-        : `${year}: IPREM ${raw.iprem} × ${raw.subsidio52} = ${bruto} €. Base cotización ${raw.baseMinima} €.`;
+        ? `${year}: ${bruto} €/mes (80% IPREM, 12 pagas). SEPE no retiene IRPF. Cotiza ${baseCot} €/mes = 125% del tope mínimo ${raw.baseMinima} € (LGSS art. 280.3 · Orden PJC/297/2026).`
+        : `${year}: IPREM ${raw.iprem} × ${raw.subsidio52} = ${bruto} €. Cotiza ${baseCot} € (125% de ${raw.baseMinima}).`;
 
   return {
     year,
@@ -120,7 +140,7 @@ function toConfig(
     smiMonthly14: raw.smi,
     rentLimitPercentOfSmi: RENT_LIMIT_PCT,
     sources: [
-      'lib/rules/subsidio-52-params.json',
+      ...OFFICIAL_SOURCES,
       inheritedFrom != null ? `Heredado de ${inheritedFrom}` : `Ficha ${year}`,
     ],
     notes,
@@ -150,7 +170,10 @@ export function deriveSubsidio52Amounts(cfg: Subsidio52YearConfig) {
   /** SEPE no practica retención: lo que ingresa es el bruto (480 €). */
   const subsidioNeto =
     cfg.irpfRetentionRate === 0 ? subsidioBruto : round2(subsidioBruto - irpfMonthly);
-  const baseCotizacion = round2(cfg.baseMinimaRegimenGeneral);
+  /** LGSS art. 280.3: 125 % del tope mínimo vigente. */
+  const baseCotizacion = round2(
+    cfg.baseMinimaRegimenGeneral * cfg.cotizacionPercentOfMinima
+  );
   const rentLimitMonthly = round2(cfg.smiMonthly14 * cfg.rentLimitPercentOfSmi);
 
   return {
@@ -159,6 +182,7 @@ export function deriveSubsidio52Amounts(cfg: Subsidio52YearConfig) {
     subsidioNeto,
     baseCotizacion,
     rentLimitMonthly,
+    baseMinima: cfg.baseMinimaRegimenGeneral,
   };
 }
 

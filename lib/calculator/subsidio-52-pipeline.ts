@@ -132,6 +132,7 @@ export function buildSubsidio52ErpPipeline(options: {
     ...lifePath,
     subsidioMayores52From: '2099-01',
     desempleoBaseAntesSubsidio: 0,
+    desempleoBaseFrom: null,
     subsidioCotizacionBase: null,
   };
   const freezeSnap = getRealPensionSnapshot(options.expediente, {
@@ -259,7 +260,7 @@ export function previewYearOverrideEffect(
   return {
     bruto,
     neto: round2(bruto - irpf),
-    baseCotizacion: round2(override.baseMinima),
+    baseCotizacion: round2(override.baseMinima * override.cotizacion52),
     rentLimit: round2(override.smi * 0.75),
   };
 }

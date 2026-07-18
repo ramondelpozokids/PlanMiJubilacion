@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { getProfile } from '@/lib/supabase/server';
 import { hasUnlimitedAccess } from '@/lib/admin/access';
 import { listContactSubmissions, markContactRead } from '@/lib/contact/repository';
+import { ScopeBadge } from '@/components/features/scope-badge';
 
 export const metadata = { title: 'Bandeja de contacto', robots: { index: false } };
 export const dynamic = 'force-dynamic';
@@ -32,19 +33,25 @@ export default async function ContactInboxPage({
     <div className="space-y-6 max-w-4xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Fundador</p>
-          <h1 className="text-2xl font-semibold tracking-tight">Bandeja de contacto</h1>
+          <ScopeBadge scope="personal" />
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight">Bandeja de contacto</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Mensajes del formulario público dirigidos a la bandeja del fundador
-            (contacto: info@ramondelpozorott.es). Los adjuntos llegan cifrados
-            (AES-256-GCM).
+            Mensajes del formulario público. Forman parte de tu área de fundador (Mi plan), no del
+            expediente de un familiar. Adjuntos cifrados (AES-256-GCM).
           </p>
         </div>
-        <Link href="/asesoria">
-          <Button size="sm" variant="secondary">
-            Volver a asesoría
-          </Button>
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/asesoria/consultas">
+            <Button size="sm" variant="secondary">
+              Consultas de clientes
+            </Button>
+          </Link>
+          <Link href="/jubilacion">
+            <Button size="sm" variant="ghost">
+              Mi plan
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {messages.length === 0 ? (

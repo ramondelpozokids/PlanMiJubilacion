@@ -56,7 +56,11 @@ export function ConsultationManager({
         toast.error(res.error);
         return;
       }
-      toast.success(`Documento procesado · expediente ${res.completitud}%`);
+      toast.success(
+        res.replaced
+          ? `Documento actualizado (se sustituyó el anterior) · expediente ${res.completitud}%`
+          : `Documento procesado · expediente ${res.completitud}%`
+      );
       form.reset();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error');
@@ -70,9 +74,10 @@ export function ConsultationManager({
       {!uploadOnly && (
         <div className="grid gap-6 lg:grid-cols-2">
           <form onSubmit={onCreate} className="rounded-xl border p-5 space-y-4">
-            <h2 className="font-semibold">Nueva consulta (gratis)</h2>
+            <h2 className="font-semibold">Nueva consulta de cliente</h2>
             <p className="text-sm text-muted-foreground">
-              Para amigos o familiares: nombre, fecha de nacimiento y documentos.
+              Amigo o familiar: nombre, fecha de nacimiento y documentos. Independiente de tu plan
+              personal.
             </p>
             <label className="block text-sm">
               <span className="text-muted-foreground">Nombre *</span>
@@ -105,7 +110,11 @@ export function ConsultationManager({
           </form>
 
           <form onSubmit={onUpload} className="rounded-xl border p-5 space-y-4">
-            <h2 className="font-semibold">Subir documentos del tercero</h2>
+            <h2 className="font-semibold">Subir documentos del cliente</h2>
+            <p className="text-sm text-muted-foreground">
+              Van a la consulta elegida (no a tu expediente personal). Vida laboral o bases nuevas
+              sustituyen la versión anterior de ese tipo.
+            </p>
             <label className="block text-sm">
               <span className="text-muted-foreground">Consulta</span>
               <select
@@ -156,6 +165,10 @@ export function ConsultationManager({
       {uploadOnly && (
         <form onSubmit={onUpload} className="rounded-xl border p-5 space-y-4">
           <h2 className="font-semibold">Subir más documentos</h2>
+          <p className="text-sm text-muted-foreground">
+            Si subes otra vida laboral o otro informe de bases, sustituye al anterior (se borra el
+            viejo y queda solo el actual).
+          </p>
           <input type="hidden" name="caseId" value={caseId} />
           <label className="block text-sm">
             <span className="text-muted-foreground">Consulta</span>

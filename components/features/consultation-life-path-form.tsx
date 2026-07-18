@@ -40,8 +40,8 @@ export function ConsultationLifePathForm({
       <div>
         <h2 className="font-semibold">Escenario vital de esta persona</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Define qué le pasa a él/ella (no tu caso). El cálculo de jubilación y MIOP usan estos
-          datos.
+          Solo afecta a esta consulta de cliente. No cambia tu plan personal (Ramón / Mi plan).
+          El informe de jubilación y la simulación por fecha usan estos datos.
         </p>
       </div>
 
@@ -70,14 +70,14 @@ export function ConsultationLifePathForm({
         <input
           type="month"
           name="subsidioMayores52From"
-          defaultValue={subsidioOn ? lifePath.subsidioMayores52From : '2027-02'}
+          defaultValue={subsidioOn ? lifePath.subsidioMayores52From : ''}
           className="mt-1 w-full max-w-xs rounded-md border bg-background px-3 py-2 text-sm"
         />
       </label>
 
       <label className="block text-sm">
         <span className="text-muted-foreground">
-          Base cotización entre hoy y el subsidio (€/mes, 0 = conservador)
+          Base cotización en paro / asimilada hasta el subsidio (€/mes, 0 = conservador)
         </span>
         <input
           type="number"
@@ -85,6 +85,18 @@ export function ConsultationLifePathForm({
           min={0}
           step={1}
           defaultValue={lifePath.desempleoBaseAntesSubsidio}
+          className="mt-1 w-full max-w-xs rounded-md border bg-background px-3 py-2 text-sm"
+        />
+      </label>
+
+      <label className="block text-sm">
+        <span className="text-muted-foreground">
+          Desde qué mes aplica esa base de paro (vacío = solo meses futuros)
+        </span>
+        <input
+          type="month"
+          name="desempleoBaseFrom"
+          defaultValue={lifePath.desempleoBaseFrom ?? ''}
           className="mt-1 w-full max-w-xs rounded-md border bg-background px-3 py-2 text-sm"
         />
       </label>

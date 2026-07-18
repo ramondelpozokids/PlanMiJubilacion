@@ -18,10 +18,18 @@ import { finalizeExpediente } from '@/lib/expediente/finalize';
 import { enrichBasesFromRawText } from '@/lib/ocr/enrich-bases';
 import { enrichResolucionFromRawText } from '@/lib/ocr/enrich-resolucion';
 import { enrichSimulacionFromRawText } from '@/lib/ocr/enrich-simulacion';
+import { enrichVidaLaboralFromRawText } from '@/lib/ocr/enrich-vida-laboral';
 import {
   getConsultationCase,
   saveConsultationExpediente,
 } from '@/lib/consultation/repository';
+import { createClient } from '@/lib/supabase/server';
+import {
+  isReplaceableDocumentType,
+  listSameTypeDocuments,
+  stripDocumentsFromExpediente,
+  type SameTypeDocRow,
+} from '@/lib/documents/replace-same-type';
 
 export interface ConsultationPipelineInput {
   founderId: string;
@@ -65,7 +73,12 @@ function normalizeExtraction(
 
 export async function runConsultationPipeline(
   input: ConsultationPipelineInput
-): Promise<ExpedienteDigital> {
+): Promise<{
+  expediente: ExpedienteDigital;
+  ocr: OCRExtractedData;
+  detectedType: DocumentTypeKey;
+  replacedDocs: SameTypeDocRow[];
+}> {
   const typeHint = normalizeDocumentType(input.documentTypeHint);
   const caseRow = await getConsultationCase(input.caseId, input.founderId);
   if (!caseRow) throw new Error('Consulta no encontrada');
@@ -77,7 +90,13 @@ export async function runConsultationPipeline(
   );
 
   const ocr = enrichSimulacionFromRawText(
-    enrichResolucionFromRawText(enrichBasesFromRawText(ocrRaw, detectedType), detectedType),
+    enrichResolucionFromRawText(
+      enrichBasesFromRawText(
+        enrichVidaLaboralFromRawText(ocrRaw, detectedType),
+        detectedType
+      ),
+      detectedType
+    ),
     detectedType
   );
 
@@ -92,6 +111,23 @@ export async function runConsultationPipeline(
     ? caseRow.expediente
     : emptyExpediente(input.founderId);
 
+  let replacedDocs: SameTypeDocRow[] = [];
+  if (isReplaceableDocumentType(detectedType)) {
+    const supabase = await createClient();
+    replacedDocs = await listSameTypeDocuments(supabase, {
+      userId: input.founderId,
+      documentType: detectedType,
+      consultationCaseId: input.caseId,
+      excludeDocumentId: input.documentId,
+    });
+    if (replacedDocs.length > 0) {
+      expediente = stripDocumentsFromExpediente(
+        expediente,
+        replacedDocs.map((d) => d.id)
+      );
+    }
+  }
+
   expediente = mergeDocumentIntoExpediente(
     expediente,
     normalized,
@@ -102,5 +138,5 @@ export async function runConsultationPipeline(
   expediente = await finalizeExpediente(expediente, input.documentName);
 
   await saveConsultationExpediente(input.caseId, input.founderId, expediente);
-  return expediente;
+  return { expediente, ocr, detectedType, replacedDocs };
 }

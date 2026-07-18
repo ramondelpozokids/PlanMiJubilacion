@@ -4,6 +4,8 @@
 import { createClient } from '@/lib/supabase/server';
 import type { ExpedienteDigital } from './types';
 import { emptyExpediente } from './types';
+import { isAdminEmail } from '@/lib/admin/config';
+import { applyFounderIdentity } from '@/lib/admin/founder-identity';
 
 export async function loadExpediente(userId: string): Promise<ExpedienteDigital | null> {
   const supabase = await createClient();
@@ -18,7 +20,18 @@ export async function loadExpediente(userId: string): Promise<ExpedienteDigital 
   const { pruneExpedienteToToday } = await import('./merge');
   const before = exp.bases.length;
   pruneExpedienteToToday(exp);
-  if (exp.bases.length !== before) {
+
+  let identityChanged = false;
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('email')
+    .eq('id', userId)
+    .maybeSingle();
+  if (isAdminEmail(profile?.email)) {
+    identityChanged = applyFounderIdentity(exp);
+  }
+
+  if (exp.bases.length !== before || identityChanged) {
     await saveExpediente(exp);
   }
   return exp;

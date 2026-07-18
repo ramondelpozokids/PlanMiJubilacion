@@ -100,6 +100,7 @@ export function evaluateScenario(
       ...lifePath,
       subsidioMayores52From: '2099-01',
       desempleoBaseAntesSubsidio: 0,
+      desempleoBaseFrom: null,
       subsidioCotizacionBase: null,
     };
     legalFlags.push('freeze');
