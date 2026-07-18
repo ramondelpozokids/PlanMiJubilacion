@@ -5,8 +5,10 @@ import { Logo } from '@/components/layout/logo';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { getUser } from '@/lib/supabase/server';
 import { PlanMiSuite } from '@/components/features/planmi-suite';
+import { PricingTable } from '@/components/features/pricing-table';
 import { PLANMI_BRAND } from '@/lib/planmi/products';
 import { getSiteUrl } from '@/lib/seo/site';
+import { listActivePricing } from '@/lib/billing/repository';
 
 export const metadata: Metadata = {
   title: 'PlanMiJubilación — Ecosistema PlanMi | Planifica tu jubilación',
@@ -74,7 +76,7 @@ function JsonLd() {
 }
 
 export default async function HomePage() {
-  const user = await getUser();
+  const [user, pricing] = await Promise.all([getUser(), listActivePricing()]);
 
   return (
     <main className="min-h-screen">
@@ -146,6 +148,12 @@ export default async function HomePage() {
           </p>
         </div>
         <PlanMiSuite variant="marketing" loggedIn={Boolean(user)} />
+      </section>
+
+      <section className="border-t bg-muted/20">
+        <div className="max-w-6xl mx-auto px-6 py-16 md:py-20">
+          <PricingTable pricing={pricing} variant="marketing" />
+        </div>
       </section>
 
       <SiteFooter />

@@ -15,6 +15,8 @@ import { ScopeBadge } from '@/components/features/scope-badge';
 import { PLANMI_BRAND } from '@/lib/planmi/products';
 import { hasUnlimitedAccess } from '@/lib/admin/access';
 import { resolveDisplayName } from '@/lib/admin/config';
+import { listActivePricing } from '@/lib/billing/repository';
+import { PricingTable } from '@/components/features/pricing-table';
 
 export const metadata = { title: 'Inicio', robots: { index: false } };
 
@@ -23,13 +25,14 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const isFounder = hasUnlimitedAccess(profile);
 
-  const [{ data: documentsData }, expediente, { count: docCount }] = await Promise.all([
+  const [{ data: documentsData }, expediente, { count: docCount }, pricing] = await Promise.all([
     supabase
       .from('documents')
       .select('id, name, document_type, ocr_status')
       .eq('user_id', profile!.id),
     loadExpediente(profile!.id),
     supabase.from('documents').select('*', { count: 'exact', head: true }).eq('user_id', profile!.id),
+    listActivePricing(),
   ]);
 
   const exp = expediente as ExpedienteDigital | null;
@@ -89,6 +92,8 @@ export default async function DashboardPage() {
       </div>
 
       <DashboardToolsStrip isFounder={isFounder} />
+
+      <PricingTable pricing={pricing} className="print:hidden" />
 
       {isFounder && (
         <section className="rounded-xl border border-dashed p-4 print:hidden">

@@ -9,11 +9,11 @@ import { signOut } from '@/app/(auth)/login/actions';
 
 /** Plan personal del fundador / usuario. */
 const MY_PLAN_ITEMS = [
+  { href: '/dashboard', label: 'Inicio', exact: true },
   { href: '/jubilacion', label: 'Jubilación' },
   { href: '/prestaciones', label: 'Prestaciones' },
   { href: '/vida-laboral', label: 'Vida laboral' },
   { href: '/futuro', label: 'Futuro' },
-  { href: '/dashboard', label: 'Inicio', exact: true },
   { href: '/asesoria', label: 'Simulación guiada', exact: true },
   { href: '/asesoria/mensajes', label: 'Bandeja de contacto' },
   { href: '/settings', label: 'Ajustes' },
