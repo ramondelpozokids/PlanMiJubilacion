@@ -2,8 +2,12 @@ import { formatPriceEur } from '@/lib/billing/pricing';
 import type { PricingRule } from '@/lib/international-coordination/types';
 import { cn } from '@/lib/utils';
 
-/** En portada/dashboard solo se muestra el informe internacional (sin duplicados). */
-const PUBLIC_PRICE_KEYS = new Set(['informe_internacional']);
+/** En portada/dashboard: estándar + internacional + premium (sin duplicar los 49,90 €). */
+const PUBLIC_PRICE_KEYS = new Set([
+  'informe_estandar',
+  'informe_internacional',
+  'informe_premium',
+]);
 
 export function PricingTable({
   pricing,
