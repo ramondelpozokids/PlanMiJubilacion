@@ -64,7 +64,7 @@ export const FOUNDER_LIFE_PATH: LifePathAssumptions = {
 /** @deprecated Prefer FOUNDER_LIFE_PATH — mismo objeto (plan personal del fundador). */
 export const DEFAULT_LIFE_PATH = FOUNDER_LIFE_PATH;
 
-/** Asesoría / consultas: neutro hasta que se active en la ficha del cliente. */
+/** Asesoría / consultas: por defecto sigue trabajando (proyecta última base). */
 export const DEFAULT_CONSULTATION_LIFE_PATH: LifePathAssumptions = {
   currentlyUnemployed: false,
   subsidioMayores52From: '2099-01',
@@ -169,12 +169,20 @@ export function describeLifePathTramos(life: LifePathAssumptions): {
   const paroBase = life.desempleoBaseAntesSubsidio;
   const from = life.desempleoBaseFrom;
   const sub = life.subsidioMayores52From;
+  if (!life.currentlyUnemployed && !isSubsidio52Active(life)) {
+    return {
+      paro: 'Sigue trabajando · se proyecta la última base de cotización documentada hasta la jubilación',
+      subsidio: null,
+    };
+  }
   const paro =
     paroBase > 0 && from && isSubsidio52Active(life)
       ? `Paro SEPE · base ${paroBase.toLocaleString('es-ES')} €/mes · ${from} → mes anterior a ${sub}`
       : paroBase > 0
         ? `Paro / asimilada · base ${paroBase.toLocaleString('es-ES')} €/mes hasta el subsidio`
-        : null;
+        : life.currentlyUnemployed
+          ? 'En paro · sin base asimilada declarada (meses futuros a 0 hasta el subsidio)'
+          : null;
   const subsidio = isSubsidio52Active(life)
     ? `Subsidio +52 · base oficial 125 % mínima desde ${sub} hasta la jubilación`
     : null;

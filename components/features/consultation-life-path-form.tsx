@@ -40,8 +40,10 @@ export function ConsultationLifePathForm({
       <div>
         <h2 className="font-semibold">Escenario vital de esta persona</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Solo afecta a esta consulta de cliente. No cambia tu plan personal (Ramón / Mi plan).
-          El informe de jubilación y la simulación por fecha usan estos datos.
+          Por defecto se asume que <strong>sigue trabajando</strong>: la pensión proyecta la
+          última base del informe hasta la jubilación. Si está en paro o cobrará subsidio +52,
+          márcalo aquí. Al subir una vida laboral o bases nuevas, el sistema sustituye la
+          antigua y recalcula con la nueva.
         </p>
       </div>
 

@@ -192,8 +192,10 @@ export default async function AsesoriaCasePage({
             uploadOnly
           />
           <p className="mt-2 text-xs text-muted-foreground">
-            Tip: para la carta alemana (u otro país) elija el tipo «Pensión / carta extranjera» al
-            subir el PDF, e introduzca el importe en el asistente de arriba.
+            Al subir una vida laboral o un informe de bases nuevo, se elimina el anterior del
+            mismo tipo y el cálculo usa solo el documento actualizado. Tip: para la carta
+            alemana (u otro país) elija el tipo «Pensión / carta extranjera» al subir el PDF, e
+            introduzca el importe en el asistente de arriba.
           </p>
         </div>
       </div>

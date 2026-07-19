@@ -85,7 +85,8 @@ function birthIsoFromExpediente(expediente: ExpedienteDigital): string {
 
 /**
  * Construye hasta 300 bases: pasado = informe documental;
- * futuro = escenario vital (desempleo → subsidio +52). Nunca media inventada del pasado.
+ * futuro = escenario vital (sigue trabajando / desempleo → subsidio +52).
+ * Nunca media inventada del pasado.
  */
 export function buildBasesSeries(
   expediente: ExpedienteDigital,
@@ -96,12 +97,15 @@ export function buildBasesSeries(
   const rules = getActiveSsRules();
   const documented = listDocumentedBases(expediente);
   const byKey = new Map(documented.map((b) => [b.periodKey, b.base]));
+  const lastDocumentedBase =
+    documented.length > 0 ? documented[documented.length - 1]!.base : 0;
 
   // Mes anterior al hecho causante (regla BR)
   const end = new Date(retirementDate.getFullYear(), retirementDate.getMonth() - 1, 1);
   const bases: number[] = [];
   let documentedUsed = 0;
   let projectedUsed = 0;
+  let continueWorkingMonths = 0;
 
   for (let i = rules.monthsForBaseReguladora - 1; i >= 0; i--) {
     const d = new Date(end.getFullYear(), end.getMonth() - i, 1);
@@ -118,11 +122,16 @@ export function buildBasesSeries(
     const asOfKey = asOf.getFullYear() * 12 + (asOf.getMonth() + 1);
     const thisKey = y * 12 + m;
     if (thisKey > asOfKey) {
-      const proj = projectedBaseForMonth(y, m, lifePath, asOf);
+      let proj = projectedBaseForMonth(y, m, lifePath, asOf);
+      // Sigue trabajando y no hay paro/subsidio en ese mes → última base documentada
+      if (proj <= 0 && !lifePath.currentlyUnemployed && lastDocumentedBase > 0) {
+        proj = lastDocumentedBase;
+        continueWorkingMonths++;
+      }
       bases.push(proj);
       projectedUsed++;
     } else {
-      // Hueco reciente de paro SEPE conocido (p. ej. jun/2026–hoy con base 3.357):
+      // Hueco reciente de paro SEPE conocido:
       // no inventa medias de carrera; solo aplica el tramo declarado en life-path.
       const sepe = desempleoBaseForMonth(y, m, lifePath);
       if (sepe > 0) {
@@ -141,6 +150,13 @@ export function buildBasesSeries(
         ` hasta ${lifePath.subsidioMayores52From};`
       : '';
 
+  const futureNote =
+    continueWorkingMonths > 0
+      ? ` Futuro: ${continueWorkingMonths} meses proyectados con la última base documentada (${lastDocumentedBase.toLocaleString('es-ES')} €/mes) porque sigue trabajando.`
+      : projectedUsed > 0
+        ? ` Futuro: ${projectedUsed} meses con escenario desempleo → subsidio +52 (base oficial 125 % mínima por año, desde ${lifePath.subsidioMayores52From}).`
+        : '';
+
   return {
     bases,
     documentedUsed,
@@ -148,7 +164,7 @@ export function buildBasesSeries(
     note:
       documentedUsed === 0
         ? 'Sin bases documentadas del informe. Relee el Informe Integral de Bases.'
-        : `Pasado: ${documentedUsed} meses del informe de bases.${paroNote} Futuro: ${projectedUsed} meses con escenario desempleo → subsidio +52 (base oficial 125 % mínima por año, desde ${lifePath.subsidioMayores52From}).`,
+        : `Pasado: ${documentedUsed} meses del informe de bases.${paroNote}${futureNote}`,
   };
 }
 
@@ -254,8 +270,10 @@ export function getRealPensionSnapshot(
     percentageByYears: result.percentageByYears,
     basesDocumentadas: documented.length,
     basesRequeridas: rules.monthsForBaseReguladora,
-    sourceLabel: 'Informe de bases + escenario subsidio +52',
-    note: `${series.note} No usamos la simulación SS (asume empleo continuo; tú estás en desempleo → subsidio +52).`,
+    sourceLabel: lifePath.currentlyUnemployed
+      ? 'Informe de bases + escenario desempleo / subsidio +52'
+      : 'Informe de bases + proyección sigue trabajando',
+    note: `${series.note} La simulación oficial SS (empleo continuo genérico) es solo referencia.`,
     officialSimReference,
     lifePath,
   };
