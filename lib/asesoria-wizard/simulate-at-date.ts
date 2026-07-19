@@ -19,9 +19,13 @@ import {
 import { getActiveSsRules } from '@/lib/rules/ss-rules';
 import type { LifePathAssumptions } from '@/lib/calculator/life-path';
 import { FOUNDER_LIFE_PATH } from '@/lib/calculator/life-path';
+import {
+  PENSION_ANNUAL_PAYMENTS,
+  applyPensionIrpf,
+  clampIrpfRetention,
+} from '@/lib/calculator/pension-pay';
 
-/** Pagas anuales de la pensión contributiva de jubilación (SS). */
-export const PENSION_ANNUAL_PAYMENTS = 14;
+export { PENSION_ANNUAL_PAYMENTS } from '@/lib/calculator/pension-pay';
 
 export type JubilationModality =
   | 'ordinary'
@@ -115,14 +119,12 @@ function applyIrpf(
   monthly: number | null,
   retention: number
 ): { irpfMonthly: number | null; netMonthly: number | null; netAnnual: number | null } {
-  if (monthly == null) return { irpfMonthly: null, netMonthly: null, netAnnual: null };
-  const r = Math.min(0.5, Math.max(0, retention));
-  const irpfMonthly = round2(monthly * r);
-  const netMonthly = round2(monthly - irpfMonthly);
+  const pay = applyPensionIrpf(monthly, retention);
+  if (!pay) return { irpfMonthly: null, netMonthly: null, netAnnual: null };
   return {
-    irpfMonthly,
-    netMonthly,
-    netAnnual: round2(netMonthly * PENSION_ANNUAL_PAYMENTS),
+    irpfMonthly: pay.irpfMonthly,
+    netMonthly: pay.netMonthly,
+    netAnnual: pay.netAnnual,
   };
 }
 
@@ -143,7 +145,7 @@ export function buildDateSimulation(
     assumeContinueContributing: true,
   }).date;
 
-  const irpfRetention = Math.min(0.5, Math.max(0, opts?.irpfRetention ?? 0));
+  const irpfRetention = clampIrpfRetention(opts?.irpfRetention ?? 0);
 
   const sim = simulateScenario(
     expediente,

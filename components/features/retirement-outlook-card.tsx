@@ -1,6 +1,16 @@
+'use client';
+
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import type { RetirementOutlook } from '@/lib/calculator/retirement-outlook';
 import { describeLifePathTramos } from '@/lib/calculator/life-path';
+import {
+  DEFAULT_IRPF_RETENTION,
+  IRPF_RETENTION_PRESETS,
+  applyPensionIrpf,
+  pensionPaymentsLabel,
+} from '@/lib/calculator/pension-pay';
 import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -14,12 +24,15 @@ export function RetirementOutlookCard({
   variant?: 'self' | 'consultation';
   clientName?: string;
 }) {
+  const [irpfRetention, setIrpfRetention] = useState(DEFAULT_IRPF_RETENTION);
   const p = outlook.pension.ordinaryResult;
+  const pay = p ? applyPensionIrpf(p.monthlyPension, irpfRetention) : null;
   const sim = outlook.pension.officialSimReference;
   const path = outlook.pension.lifePath;
   const tramos = describeLifePathTramos(path);
   const who = variant === 'consultation' ? clientName ?? 'Esta persona' : 'Tú';
   const possessive = variant === 'consultation' ? 'su' : 'tu';
+  const irpfPctLabel = `${(irpfRetention * 100).toFixed(0)} %`;
 
   return (
     <Card className="border-2 border-foreground/15">
@@ -91,10 +104,26 @@ export function RetirementOutlookCard({
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
               Pensión ({possessive} escenario)
             </p>
-            {p ? (
+            {p && pay ? (
               <>
-                <p className="text-2xl font-semibold mt-1">{formatCurrency(p.monthlyPension)}</p>
+                <p className="text-2xl font-semibold mt-1">
+                  {formatCurrency(pay.monthlyBruto)}
+                  <span className="text-sm font-normal text-muted-foreground"> /mes bruto</span>
+                </p>
                 <p className="text-sm text-muted-foreground mt-1">
+                  {formatCurrency(pay.annualBruto)} /año · {pensionPaymentsLabel()}
+                </p>
+                <p className="text-sm font-medium mt-2">
+                  {formatCurrency(pay.netMonthly)}
+                  <span className="font-normal text-muted-foreground">
+                    {' '}
+                    /mes neto · {formatCurrency(pay.netAnnual)} /año neto
+                  </span>
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  IRPF {irpfPctLabel} orientativo (−{formatCurrency(pay.irpfMonthly)}/mes)
+                </p>
+                <p className="text-sm text-muted-foreground mt-2">
                   {outlook.pension.quality === 'bases_plus_path'
                     ? `Informe de bases + subsidio +52 desde ${path.subsidioMayores52From}`
                     : `${p.percentageByYears.toFixed(1)}% · BR ${formatCurrency(p.baseReguladora)}`}
@@ -118,6 +147,29 @@ export function RetirementOutlookCard({
             </p>
           </div>
         </div>
+
+        {p && (
+          <div className="rounded-md border bg-muted/20 p-3 space-y-2">
+            <p className="text-sm font-medium">IRPF retención (orientativo)</p>
+            <div className="flex flex-wrap gap-1">
+              {IRPF_RETENTION_PRESETS.map((preset) => (
+                <Button
+                  key={preset.label}
+                  type="button"
+                  size="sm"
+                  variant={Math.abs(irpfRetention - preset.value) < 0.001 ? 'primary' : 'secondary'}
+                  onClick={() => setIrpfRetention(preset.value)}
+                >
+                  {preset.label}
+                </Button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              La retención real la fija AEAT/SS según situación personal. Aquí solo estimamos qué
+              queda neto tras descontar IRPF.
+            </p>
+          </div>
+        )}
 
         {outlook.ordinary.ssSteps.length > 0 && (
           <div className="rounded-md border bg-muted/20 p-4 text-sm space-y-3">
@@ -160,7 +212,7 @@ export function RetirementOutlookCard({
           <div className="rounded-md border border-dashed p-3 text-sm">
             <p className="font-medium">Referencia SS (no es {possessive} escenario real)</p>
             <p className="text-muted-foreground mt-1">
-              Simulación oficial {formatCurrency(sim.pensionMensual)}/mes
+              Simulación oficial {formatCurrency(sim.pensionMensual)}/mes bruto
               {sim.fechaJubilacion ? ` · ${sim.fechaJubilacion}` : ''} — hipótesis de empleo
               continuo.
               {path.subsidioMayores52From.startsWith('2099')
@@ -176,39 +228,47 @@ export function RetirementOutlookCard({
               Si se jubila antes: % que le quitan (coeficientes reductores)
             </h3>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[640px]">
+              <table className="w-full text-sm min-w-[720px]">
                 <thead>
                   <tr className="border-b text-left text-muted-foreground">
                     <th className="py-2 pr-2">Momento</th>
                     <th className="py-2 pr-2">Fecha</th>
                     <th className="py-2 pr-2">Meses antes</th>
                     <th className="py-2 pr-2">Reducción (BOE)</th>
-                    <th className="py-2">Pensión est.</th>
+                    <th className="py-2 pr-2">Bruto/mes</th>
+                    <th className="py-2">Neto/mes ({irpfPctLabel})</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {outlook.earlyVoluntary.scenarios.map((s) => (
-                    <tr key={s.label} className="border-b border-border/40">
-                      <td className="py-2 pr-2 font-medium">{s.label}</td>
-                      <td className="py-2 pr-2">
-                        {format(s.retirementDate, 'dd/MM/yyyy', { locale: es })}
-                      </td>
-                      <td className="py-2 pr-2">{s.monthsEarly}</td>
-                      <td className="py-2 pr-2 text-warning font-medium">
-                        −{s.reductionPercent}%
-                        {s.careerBracketLabel && (
-                          <span className="block text-xs font-normal text-muted-foreground">
-                            {s.careerBracketLabel}
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-2">
-                        {s.estimatedMonthly != null
-                          ? formatCurrency(s.estimatedMonthly)
-                          : '—'}
-                      </td>
-                    </tr>
-                  ))}
+                  {outlook.earlyVoluntary.scenarios.map((s) => {
+                    const earlyPay =
+                      s.estimatedMonthly != null
+                        ? applyPensionIrpf(s.estimatedMonthly, irpfRetention)
+                        : null;
+                    return (
+                      <tr key={s.label} className="border-b border-border/40">
+                        <td className="py-2 pr-2 font-medium">{s.label}</td>
+                        <td className="py-2 pr-2">
+                          {format(s.retirementDate, 'dd/MM/yyyy', { locale: es })}
+                        </td>
+                        <td className="py-2 pr-2">{s.monthsEarly}</td>
+                        <td className="py-2 pr-2 text-warning font-medium">
+                          −{s.reductionPercent}%
+                          {s.careerBracketLabel && (
+                            <span className="block text-xs font-normal text-muted-foreground">
+                              {s.careerBracketLabel}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2 pr-2">
+                          {earlyPay ? formatCurrency(earlyPay.monthlyBruto) : '—'}
+                        </td>
+                        <td className="py-2">
+                          {earlyPay ? formatCurrency(earlyPay.netMonthly) : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

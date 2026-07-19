@@ -22,6 +22,7 @@ import {
 } from './career-ymd';
 import { computeAnticipation } from '@/lib/rules/early-retirement';
 import type { PensionResult } from './pension';
+import { pensionPaymentsLabel } from './pension-pay';
 import {
   applyEarlyReduction,
   getRealPensionSnapshot,
@@ -343,10 +344,10 @@ export function buildRetirementOutlook(
         : `Con la proyección actual el porcentaje estimado es ${pctAtOrdinary} de la base reguladora.`,
     },
     {
-      title: '4. Coeficiente reductor (solo anticipada)',
+      title: '4. Cobro y anticipada',
       detail: resolved.at65
-        ? `Si te jubilas el ${dateLabel(ordinaryDate)}, no hay penalización por edad. Si te adelantas, el descuento depende de los meses de anticipo y de los años cotizados, y es permanente.`
-        : 'Una jubilación anticipada aplica un coeficiente reductor permanente según meses de anticipo y carrera.',
+        ? `La pensión contributiva se abona en ${pensionPaymentsLabel()}. Si te jubilas el ${dateLabel(ordinaryDate)}, no hay penalización por edad; el neto en cuenta depende del IRPF (retención AEAT). Si te adelantas, el descuento por meses de anticipo es permanente.`
+        : `La pensión se abona en ${pensionPaymentsLabel()}. Una jubilación anticipada aplica un coeficiente reductor permanente; el neto depende además del IRPF.`,
     },
   ];
 

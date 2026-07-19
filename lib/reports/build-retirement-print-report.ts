@@ -8,10 +8,12 @@ import type { LifePathAssumptions } from '@/lib/calculator/life-path';
 import { DEFAULT_LIFE_PATH, describeLifePathTramos } from '@/lib/calculator/life-path';
 import { buildRetirementOutlook } from '@/lib/calculator/retirement-outlook';
 import { resolveExpedienteAsOf } from '@/lib/expediente/as-of';
+import { buildDateSimulation } from '@/lib/asesoria-wizard/simulate-at-date';
 import {
-  buildDateSimulation,
   PENSION_ANNUAL_PAYMENTS,
-} from '@/lib/asesoria-wizard/simulate-at-date';
+  annualBrutoFromMonthly,
+  applyPensionIrpf,
+} from '@/lib/calculator/pension-pay';
 import { getOfficialSimulation } from '@/lib/calculator/real-pension';
 import { DEFAULT_ISSUER } from '@/lib/billing/documents';
 
@@ -54,21 +56,15 @@ export interface RetirementPrintReport {
   disclaimer: string;
 }
 
-function round2(n: number): number {
-  return Math.round(n * 100) / 100;
-}
-
 function irpfRows(monthly: number | null, presets: number[]): RetirementPrintIrpfRow[] {
   if (monthly == null) return [];
   return presets.map((pct) => {
-    const r = pct / 100;
-    const irpfMonthly = round2(monthly * r);
-    const netMonthly = round2(monthly - irpfMonthly);
+    const pay = applyPensionIrpf(monthly, pct / 100)!;
     return {
       retentionPct: pct,
-      irpfMonthly,
-      netMonthly,
-      netAnnual: round2(netMonthly * PENSION_ANNUAL_PAYMENTS),
+      irpfMonthly: pay.irpfMonthly,
+      netMonthly: pay.netMonthly,
+      netAnnual: pay.netAnnual,
     };
   });
 }
@@ -122,8 +118,7 @@ export function buildRetirementPrintReport(
     annualPayments: PENSION_ANNUAL_PAYMENTS,
     real: {
       monthlyBruto: monthly,
-      annualBruto:
-        monthly != null ? round2(monthly * PENSION_ANNUAL_PAYMENTS) : null,
+      annualBruto: monthly != null ? annualBrutoFromMonthly(monthly) : null,
       baseReguladora:
         sim?.baseReguladora ?? outlook.pension.ordinaryResult?.baseReguladora ?? null,
       percentageByYears:
@@ -135,7 +130,7 @@ export function buildRetirementPrintReport(
       monthlyBruto: official?.pensionMensual ?? null,
       annualBruto:
         official?.pensionMensual != null
-          ? round2(official.pensionMensual * PENSION_ANNUAL_PAYMENTS)
+          ? annualBrutoFromMonthly(official.pensionMensual)
           : null,
       dateLabel: official?.fechaJubilacion ?? null,
       note:

@@ -15,6 +15,11 @@ import {
 } from '@/lib/utils';
 import { evaluateInternationalCoordination } from '@/lib/international-coordination/evaluate';
 import { InternationalCotizacionesReport } from '@/components/features/international-cotizaciones-report';
+import {
+  DEFAULT_IRPF_RETENTION,
+  applyPensionIrpf,
+  pensionPaymentsLabel,
+} from '@/lib/calculator/pension-pay';
 
 type DateSort = 'desc' | 'asc';
 
@@ -172,15 +177,31 @@ export function ExpedienteSections({
           <Stat n={expediente.resoluciones.length} label="Certificados" />
           <Stat n={expediente.documentIds.length} label="Documentos" />
         </div>
-        {outlook?.pension.ordinaryResult && (
-          <div className="mt-4 rounded-lg border bg-muted/20 px-4 py-3 text-sm">
-            <p className="text-muted-foreground">Pensión ordinaria estimada</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums">
-              {formatCurrencyExact(outlook.pension.ordinaryResult.monthlyPension)}
-              <span className="text-sm font-normal text-muted-foreground"> /mes</span>
-            </p>
-          </div>
-        )}
+        {outlook?.pension.ordinaryResult && (() => {
+          const pay = applyPensionIrpf(
+            outlook.pension.ordinaryResult.monthlyPension,
+            DEFAULT_IRPF_RETENTION
+          )!;
+          return (
+            <div className="mt-4 rounded-lg border bg-muted/20 px-4 py-3 text-sm">
+              <p className="text-muted-foreground">Pensión ordinaria estimada</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">
+                {formatCurrencyExact(pay.monthlyBruto)}
+                <span className="text-sm font-normal text-muted-foreground"> /mes bruto</span>
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {formatCurrencyExact(pay.annualBruto)} /año · {pensionPaymentsLabel()}
+              </p>
+              <p className="mt-1 text-sm font-medium tabular-nums">
+                {formatCurrencyExact(pay.netMonthly)}
+                <span className="font-normal text-muted-foreground">
+                  {' '}
+                  /mes neto (IRPF {(DEFAULT_IRPF_RETENTION * 100).toFixed(0)} % orientativo)
+                </span>
+              </p>
+            </div>
+          );
+        })()}
         <p className="mt-4 text-xs text-muted-foreground">
           Completitud {expediente.completitud.score}% · Fuente de verdad unificada
         </p>

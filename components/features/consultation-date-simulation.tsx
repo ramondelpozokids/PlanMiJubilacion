@@ -11,17 +11,12 @@ import {
   PENSION_ANNUAL_PAYMENTS,
   type DateSimulationRow,
 } from '@/lib/asesoria-wizard/simulate-at-date';
+import {
+  DEFAULT_IRPF_RETENTION,
+  IRPF_RETENTION_PRESETS,
+} from '@/lib/calculator/pension-pay';
 import { SimulationCalculationBreakdown } from '@/components/features/asesoria-wizard/simulation-calculation-breakdown';
 import { formatCurrencyExact } from '@/lib/utils';
-
-const IRPF_PRESETS = [
-  { label: '0 %', value: 0 },
-  { label: '2 %', value: 0.02 },
-  { label: '8 %', value: 0.08 },
-  { label: '15 %', value: 0.15 },
-  { label: '19 %', value: 0.19 },
-  { label: '24 %', value: 0.24 },
-];
 
 function toDateInputValue(d: Date): string {
   const y = d.getFullYear();
@@ -73,7 +68,7 @@ export function ConsultationDateSimulation({
 }) {
   const todayIso = toDateInputValue(new Date());
   const [dateIso, setDateIso] = useState(defaultDateIso || todayIso);
-  const [irpfPct, setIrpfPct] = useState(0);
+  const [irpfPct, setIrpfPct] = useState(DEFAULT_IRPF_RETENTION * 100);
   const [involuntary, setInvoluntary] = useState(false);
 
   const irpfRetention = Math.min(50, Math.max(0, irpfPct)) / 100;
@@ -106,8 +101,8 @@ export function ConsultationDateSimulation({
         </CardTitle>
         <p className="text-sm font-normal text-muted-foreground">
           Elige la fecha de jubilación (como en la Seguridad Social): verás la pensión bruta, el %
-          que le quitan por anticipada, las {PENSION_ANNUAL_PAYMENTS} pagas anuales y el neto tras
-          IRPF orientativo.
+          que le quitan por anticipada, las {PENSION_ANNUAL_PAYMENTS} pagas anuales (12 + 2 extras) y el
+          neto tras IRPF orientativo.
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -136,7 +131,7 @@ export function ConsultationDateSimulation({
           </label>
           <div className="flex flex-col justify-end gap-2">
             <div className="flex flex-wrap gap-1">
-              {IRPF_PRESETS.map((p) => (
+              {IRPF_RETENTION_PRESETS.map((p) => (
                 <Button
                   key={p.label}
                   type="button"
@@ -185,7 +180,7 @@ export function ConsultationDateSimulation({
               <Metric
                 label="Pagas anuales"
                 value={String(row.annualPayments)}
-                hint="Pensión contributiva (14 pagas)"
+                hint="12 mensuales + 2 extras"
               />
               <Metric
                 label="Pensión bruta / mes"
