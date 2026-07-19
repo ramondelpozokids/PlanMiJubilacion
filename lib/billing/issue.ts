@@ -154,7 +154,13 @@ export async function issueBillingDocuments(
     .single();
 
   if (orderErr || !order) {
-    throw new Error(orderErr?.message ?? 'No se pudo crear el pedido');
+    const msg = orderErr?.message ?? 'No se pudo crear el pedido';
+    if (/consultation_case_id/i.test(msg)) {
+      throw new Error(
+        'Falta la migración 012 en Supabase (consultation_case_id). Ejecuta MANUAL_012.sql y reintenta.'
+      );
+    }
+    throw new Error(msg);
   }
 
   const docs = [
@@ -209,7 +215,13 @@ export async function issueBillingDocuments(
     .select('id, doc_type, doc_number');
 
   if (docsErr || !inserted?.length) {
-    throw new Error(docsErr?.message ?? 'No se pudieron guardar los documentos');
+    const msg = docsErr?.message ?? 'No se pudieron guardar los documentos';
+    if (/consultation_case_id/i.test(msg)) {
+      throw new Error(
+        'Falta la migración 012 en Supabase (consultation_case_id). Ejecuta MANUAL_012.sql y reintenta.'
+      );
+    }
+    throw new Error(msg);
   }
 
   const byType = Object.fromEntries(inserted.map((d) => [d.doc_type, d]));

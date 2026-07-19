@@ -5,6 +5,7 @@ import { getProfile } from '@/lib/supabase/server';
 import { hasUnlimitedAccess } from '@/lib/admin/access';
 import { issueBillingDocuments } from '@/lib/billing/issue';
 import { deleteUserBillingDocuments } from '@/lib/billing/repository';
+import { getConsultationCase } from '@/lib/consultation/repository';
 import type { DiscountMode, ServiceKey } from '@/lib/international-coordination/types';
 
 const SERVICE_KEYS: ServiceKey[] = [
@@ -43,10 +44,19 @@ export async function issueDocumentsAction(formData: FormData) {
   const clientTaxId = String(formData.get('clientTaxId') ?? '').trim() || undefined;
   const clientAddress = String(formData.get('clientAddress') ?? '').trim() || undefined;
   const notes = String(formData.get('notes') ?? '').trim() || undefined;
-  const consultationCaseId =
+  const consultationCaseIdRaw =
     String(formData.get('consultationCaseId') ?? '').trim() || undefined;
 
   if (!clientEmail) throw new Error('Falta el email del cliente');
+
+  let consultationCaseId: string | undefined;
+  if (consultationCaseIdRaw) {
+    const owned = await getConsultationCase(consultationCaseIdRaw, profile.id);
+    if (!owned) {
+      throw new Error('La consulta no existe o no te pertenece');
+    }
+    consultationCaseId = owned.id;
+  }
 
   const result = await issueBillingDocuments({
     userId: profile.id,

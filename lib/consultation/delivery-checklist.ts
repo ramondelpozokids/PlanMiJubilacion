@@ -2,6 +2,7 @@
  * Checklist de calidad antes de entregar / cobrar un informe de consulta.
  */
 import type { ExpedienteDigital } from '@/lib/expediente/types';
+import { normalizeDocumentType } from '@/lib/expediente/document-types';
 import { canCalculateFromExpediente } from '@/lib/calculator/from-expediente';
 import type { DossierDocumentInput } from '@/lib/reports/build-client-dossier-report';
 
@@ -28,6 +29,10 @@ function hasBirth(expediente: ExpedienteDigital, clientBirthDate?: string | null
   return Boolean(raw && String(raw).trim());
 }
 
+function docsOfType(documents: DossierDocumentInput[], type: string): DossierDocumentInput[] {
+  return documents.filter((d) => normalizeDocumentType(d.document_type) === type);
+}
+
 export function buildConsultationDeliveryChecklist(options: {
   expediente: ExpedienteDigital;
   documents: DossierDocumentInput[];
@@ -46,7 +51,7 @@ export function buildConsultationDeliveryChecklist(options: {
     severity: birthOk ? 'ok' : 'block',
   });
 
-  const vlDocs = documents.filter((d) => d.document_type === 'vida_laboral');
+  const vlDocs = docsOfType(documents, 'vida_laboral');
   const hasPeriodos = expediente.periodos.length > 0;
   items.push({
     id: 'vida_laboral',
@@ -62,7 +67,7 @@ export function buildConsultationDeliveryChecklist(options: {
     severity: hasPeriodos ? 'ok' : vlDocs.length > 0 ? 'warn' : 'block',
   });
 
-  const basesDocs = documents.filter((d) => d.document_type === 'bases_cotizacion');
+  const basesDocs = docsOfType(documents, 'bases_cotizacion');
   const basesCount = expediente.bases.length;
   items.push({
     id: 'bases',
