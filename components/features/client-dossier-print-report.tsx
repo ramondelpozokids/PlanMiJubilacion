@@ -587,6 +587,55 @@ export function ClientDossierPrintReport({
           </Section>
         )}
 
+        <Section title="Cierre comercial y condiciones">
+          <div className="rounded-lg border-2 border-foreground/20 p-4 space-y-3 text-sm">
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Servicio
+                </p>
+                <p className="font-medium">{report.commercial.serviceLabel}</p>
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Fecha de entrega
+                </p>
+                <p className="font-medium">{report.commercial.deliveredAtLabel}</p>
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Importe
+                </p>
+                <p className="font-medium">
+                  {report.commercial.priceLabel ??
+                    (report.commercial.priceCents != null
+                      ? formatCurrencyExact(report.commercial.priceCents / 100)
+                      : 'Según tarifa acordada')}
+                </p>
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Factura
+                </p>
+                <p className="font-medium font-mono text-xs">
+                  {report.commercial.invoiceNumber ?? 'Pendiente de emitir'}
+                </p>
+              </div>
+            </div>
+            <div className="border-t pt-3">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
+                Condiciones legales
+              </p>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {report.commercial.legalDisclaimer}
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Documento fijado: nº {report.reportNumber} · verificación {report.verificationId}
+            </p>
+          </div>
+        </Section>
+
         <div className="border-t px-6 py-4 text-xs text-muted-foreground space-y-1 print:px-0">
           <p>{report.disclaimer}</p>
           <p>

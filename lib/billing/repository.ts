@@ -77,13 +77,14 @@ export interface BillingDocumentRow {
   docNumber: string;
   payload: Record<string, unknown>;
   createdAt: string;
+  consultationCaseId?: string | null;
 }
 
 export async function listUserBillingDocuments(userId: string): Promise<BillingDocumentRow[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from('billing_documents')
-    .select('id, doc_type, doc_number, payload, created_at, html_snapshot')
+    .select('id, doc_type, doc_number, payload, created_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
@@ -93,6 +94,36 @@ export async function listUserBillingDocuments(userId: string): Promise<BillingD
     docNumber: r.doc_number,
     payload: r.payload as Record<string, unknown>,
     createdAt: r.created_at ?? '',
+    consultationCaseId: null,
+  }));
+}
+
+/** Facturas / recibos / portadas ligados a una consulta. */
+export async function listBillingDocumentsForConsultation(
+  userId: string,
+  consultationCaseId: string
+): Promise<BillingDocumentRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('billing_documents')
+    .select('id, doc_type, doc_number, payload, created_at, consultation_case_id')
+    .eq('user_id', userId)
+    .eq('consultation_case_id', consultationCaseId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    // Columna aún no migrada: no tumbar la página de consulta.
+    console.error('listBillingDocumentsForConsultation:', error.message);
+    return [];
+  }
+
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    docType: r.doc_type,
+    docNumber: r.doc_number,
+    payload: r.payload as Record<string, unknown>,
+    createdAt: r.created_at ?? '',
+    consultationCaseId: (r as { consultation_case_id?: string | null }).consultation_case_id ?? null,
   }));
 }
 

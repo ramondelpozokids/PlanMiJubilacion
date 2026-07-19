@@ -22,6 +22,8 @@ import { buildClientDossierReport } from '@/lib/reports/build-client-dossier-rep
 import { ClientDossierPrintReport } from '@/components/features/client-dossier-print-report';
 import { listDocumentsForScope } from '@/lib/documents/list-for-scope';
 import { resolveExpedienteAsOf } from '@/lib/expediente/as-of';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 export const metadata = { title: 'PlanMiJubilacion', robots: { index: false } };
 
@@ -50,6 +52,12 @@ export default async function JubilacionPage() {
         lifePath: FOUNDER_LIFE_PATH,
         variant: 'self',
         documents: personalDocs,
+        commercial: {
+          serviceLabel: 'Informe personal de jubilación (Mi plan)',
+          priceCents: null,
+          priceLabel: 'Uso personal · sin cobro',
+          deliveredAtLabel: format(asOf, "d 'de' MMMM 'de' yyyy", { locale: es }),
+        },
       })
     : null;
 

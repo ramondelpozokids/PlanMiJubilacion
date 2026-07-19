@@ -13,11 +13,16 @@ export function IssueDocumentsForm({
   defaultName,
   defaultEmail,
   isFounder,
+  consultationCaseId,
+  compactTitle,
 }: {
   pricing: PricingRule[];
   defaultName: string;
   defaultEmail: string;
   isFounder: boolean;
+  /** Si se indica, la factura queda ligada a esa consulta. */
+  consultationCaseId?: string;
+  compactTitle?: string;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -47,11 +52,17 @@ export function IssueDocumentsForm({
 
   return (
     <form onSubmit={onSubmit} className="rounded-xl border p-5 space-y-4">
+      {consultationCaseId && (
+        <input type="hidden" name="consultationCaseId" value={consultationCaseId} />
+      )}
       <div>
-        <h2 className="font-semibold text-xl">Crear factura y recibo</h2>
+        <h2 className="font-semibold text-xl">
+          {compactTitle ?? 'Crear factura y recibo'}
+        </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Genera al instante factura (FAC-…), recibo (REC-…) y portada (INF-…) con tu logo.
-          Stripe se conectará más adelante.
+          {consultationCaseId
+            ? 'La factura, el recibo y la portada quedarán vinculados a esta consulta.'
+            : 'Genera al instante factura (FAC-…), recibo (REC-…) y portada (INF-…) con tu logo. Stripe se conectará más adelante.'}
         </p>
       </div>
 

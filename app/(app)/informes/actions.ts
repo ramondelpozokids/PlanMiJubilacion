@@ -43,6 +43,8 @@ export async function issueDocumentsAction(formData: FormData) {
   const clientTaxId = String(formData.get('clientTaxId') ?? '').trim() || undefined;
   const clientAddress = String(formData.get('clientAddress') ?? '').trim() || undefined;
   const notes = String(formData.get('notes') ?? '').trim() || undefined;
+  const consultationCaseId =
+    String(formData.get('consultationCaseId') ?? '').trim() || undefined;
 
   if (!clientEmail) throw new Error('Falta el email del cliente');
 
@@ -55,9 +57,13 @@ export async function issueDocumentsAction(formData: FormData) {
     serviceKey,
     discountMode,
     notes,
+    consultationCaseId,
   });
 
   revalidatePath('/informes');
+  if (consultationCaseId) {
+    revalidatePath(`/asesoria/${consultationCaseId}`);
+  }
   return result;
 }
 

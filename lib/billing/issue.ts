@@ -25,6 +25,8 @@ export interface IssueBillingInput {
   discountMode?: DiscountMode;
   paymentMethod?: string;
   notes?: string;
+  /** Vincula factura/pedido a una consulta de familiar/amigo. */
+  consultationCaseId?: string | null;
 }
 
 export interface IssuedBillingBundle {
@@ -138,12 +140,14 @@ export async function issueBillingDocuments(
       amount_cents: finalCents,
       discount_mode: mode,
       paid_at: paymentDate,
+      consultation_case_id: input.consultationCaseId ?? null,
       metadata: {
         notes: input.notes ?? null,
         paymentMethod,
         invoiceNumber,
         receiptNumber,
         reportNumber,
+        consultationCaseId: input.consultationCaseId ?? null,
       },
     })
     .select('id')
@@ -161,6 +165,7 @@ export async function issueBillingDocuments(
       doc_number: invoiceNumber,
       payload: invoicePayload,
       html_snapshot: invoiceHtml,
+      consultation_case_id: input.consultationCaseId ?? null,
     },
     {
       user_id: input.userId,
@@ -169,6 +174,7 @@ export async function issueBillingDocuments(
       doc_number: receiptNumber,
       payload: receiptPayload,
       html_snapshot: receiptHtml,
+      consultation_case_id: input.consultationCaseId ?? null,
     },
     {
       user_id: input.userId,
@@ -190,8 +196,10 @@ export async function issueBillingDocuments(
         reportNumber,
         invoiceNumber,
         receiptNumber,
+        consultationCaseId: input.consultationCaseId ?? null,
       },
       html_snapshot: coverHtml,
+      consultation_case_id: input.consultationCaseId ?? null,
     },
   ];
 

@@ -85,6 +85,16 @@ export interface DossierIntlRow {
   source: string;
 }
 
+export interface ClientDossierCommercial {
+  /** Precio cobrado / a cobrar (céntimos). null = no mostrar importe. */
+  priceCents: number | null;
+  priceLabel: string | null;
+  serviceLabel: string;
+  deliveredAtLabel: string;
+  invoiceNumber: string | null;
+  legalDisclaimer: string;
+}
+
 export interface ClientDossierReport {
   reportNumber: string;
   issuedAtLabel: string;
@@ -113,6 +123,7 @@ export interface ClientDossierReport {
   advisorSummary: string | null;
   summaryLines: string[];
   paymentsLabel: string;
+  commercial: ClientDossierCommercial;
   disclaimer: string;
 }
 
@@ -171,6 +182,15 @@ export function buildClientDossierReport(
     documents?: DossierDocumentInput[];
     summaryLines?: string[];
     asOf?: Date;
+    /** Cierre comercial (precio, factura, disclaimer legal). */
+    commercial?: {
+      priceCents?: number | null;
+      priceLabel?: string | null;
+      serviceLabel?: string;
+      deliveredAtLabel?: string;
+      invoiceNumber?: string | null;
+      legalDisclaimer?: string;
+    };
   } = {}
 ): ClientDossierReport | null {
   const lifePath = options.lifePath ?? DEFAULT_LIFE_PATH;
@@ -370,6 +390,23 @@ export function buildClientDossierReport(
     .slice(0, 6)
     .toUpperCase()}`;
 
+  const commercial: ClientDossierCommercial = {
+    priceCents: options.commercial?.priceCents ?? null,
+    priceLabel: options.commercial?.priceLabel ?? null,
+    serviceLabel:
+      options.commercial?.serviceLabel ??
+      (variant === 'consultation'
+        ? 'Informe de asesoría personalizado'
+        : 'Informe personal de jubilación'),
+    deliveredAtLabel:
+      options.commercial?.deliveredAtLabel ??
+      format(asOf, "d 'de' MMMM 'de' yyyy", { locale: es }),
+    invoiceNumber: options.commercial?.invoiceNumber ?? null,
+    legalDisclaimer:
+      options.commercial?.legalDisclaimer ??
+      'Documento orientativo de planificación. No constituye asesoramiento jurídico vinculante ni sustituye resoluciones, simulaciones o cálculos oficiales del INSS, la TGSS, el SEPE o la AEAT. Las cifras de pensión e IRPF son estimaciones basadas en la documentación aportada; la retención fiscal real y el importe definitivo los fijan los organismos competentes. El titular es responsable de verificar los datos ante la Seguridad Social antes de solicitar la jubilación.',
+  };
+
   return {
     reportNumber,
     issuedAtLabel: format(asOf, "d 'de' MMMM 'de' yyyy, HH:mm", { locale: es }),
@@ -407,6 +444,7 @@ export function buildClientDossierReport(
     advisorSummary: expediente.advisor?.summary ?? null,
     summaryLines: options.summaryLines ?? [],
     paymentsLabel: pensionPaymentsLabel(),
+    commercial,
     disclaimer:
       'Informe-dossier orientativo de PlanMiJubilación. Incluye toda la documentación aportada y el cálculo estimado. No sustituye resoluciones del INSS ni el cálculo oficial de la Seguridad Social. El IRPF es estimativo; la retención real la fija la AEAT.',
   };

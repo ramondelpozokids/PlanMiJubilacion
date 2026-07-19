@@ -30,7 +30,17 @@ import { ScopeBadge } from '@/components/features/scope-badge';
 import { buildClientDossierReport } from '@/lib/reports/build-client-dossier-report';
 import { ClientDossierPrintReport } from '@/components/features/client-dossier-print-report';
 import { listDocumentsForScope } from '@/lib/documents/list-for-scope';
+import { buildConsultationDeliveryChecklist } from '@/lib/consultation/delivery-checklist';
+import { ConsultationPreSendChecklist } from '@/components/features/consultation-pre-send-checklist';
+import { ConsultationBillingPanel } from '@/components/features/consultation-billing-panel';
+import {
+  listActivePricing,
+  listBillingDocumentsForConsultation,
+  getPricingRule,
+} from '@/lib/billing/repository';
+import { formatPriceEur } from '@/lib/billing/pricing';
 import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { resolveExpedienteAsOf } from '@/lib/expediente/as-of';
 
 export const metadata = { title: 'Consulta de cliente', robots: { index: false } };
@@ -70,10 +80,27 @@ export default async function AsesoriaCasePage({
       internationalCotizaciones: c.expediente.internationalCotizaciones,
     });
 
-  const caseDocuments = await listDocumentsForScope({
-    userId: profile.id,
-    consultationCaseId: c.id,
+  const [caseDocuments, linkedBilling, pricing, standardPrice] = await Promise.all([
+    listDocumentsForScope({
+      userId: profile.id,
+      consultationCaseId: c.id,
+    }),
+    listBillingDocumentsForConsultation(profile.id, c.id),
+    listActivePricing(),
+    getPricingRule('informe_estandar'),
+  ]);
+
+  const checklist = buildConsultationDeliveryChecklist({
+    expediente: c.expediente,
+    documents: caseDocuments,
+    clientBirthDate: c.clientBirthDate,
   });
+
+  const latestInvoice = linkedBilling.find((d) => d.docType === 'invoice');
+  const invoiceTotalCents =
+    typeof latestInvoice?.payload.totalCents === 'number'
+      ? latestInvoice.payload.totalCents
+      : null;
 
   const dossierReport = buildClientDossierReport(c.expediente, {
     clientName: c.clientName,
@@ -81,6 +108,13 @@ export default async function AsesoriaCasePage({
     variant: 'consultation',
     documents: caseDocuments,
     summaryLines: summaryLines || undefined,
+    commercial: {
+      serviceLabel: standardPrice.label,
+      priceCents: invoiceTotalCents ?? standardPrice.priceCents,
+      priceLabel: formatPriceEur(invoiceTotalCents ?? standardPrice.priceCents),
+      deliveredAtLabel: format(asOf, "d 'de' MMMM 'de' yyyy", { locale: es }),
+      invoiceNumber: latestInvoice?.docNumber ?? null,
+    },
   });
 
   const allCases = await listConsultationCases(profile.id);
@@ -129,6 +163,17 @@ export default async function AsesoriaCasePage({
       </div>
 
       <div className="print:hidden space-y-8">
+        <ConsultationPreSendChecklist checklist={checklist} clientName={c.clientName} />
+
+        <ConsultationBillingPanel
+          caseId={c.id}
+          clientName={c.clientName}
+          defaultEmail={profile.email ?? ''}
+          pricing={pricing}
+          isFounder
+          linkedDocuments={linkedBilling}
+        />
+
         <ConsultationLifePathForm caseId={c.id} lifePath={c.lifePath} />
 
         <InternationalCotizacionesWizard
