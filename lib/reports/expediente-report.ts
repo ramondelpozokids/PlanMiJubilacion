@@ -2,6 +2,7 @@
  * Informes — generan resúmenes del expediente sin re-analizar PDFs.
  */
 import type { ExpedienteDigital } from '@/lib/expediente/types';
+import { resolveExpedienteAsOf } from '@/lib/expediente/as-of';
 import { buildRetirementOutlook } from '@/lib/calculator/retirement-outlook';
 import { evaluateInternationalCoordination } from '@/lib/international-coordination/evaluate';
 
@@ -56,7 +57,7 @@ export interface ExpedienteReportSummary {
 }
 
 export function buildExpedienteReport(expediente: ExpedienteDigital): ExpedienteReportSummary {
-  const outlook = buildRetirementOutlook(expediente);
+  const outlook = buildRetirementOutlook(expediente, resolveExpedienteAsOf(expediente));
   const pipe = outlook?.erpPipeline ?? null;
   const intl = evaluateInternationalCoordination(expediente.internationalCotizaciones);
   return {

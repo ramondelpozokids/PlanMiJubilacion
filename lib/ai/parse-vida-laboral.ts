@@ -39,7 +39,8 @@ function toSlashDate(raw: string | null | undefined): string | null {
   return `${m[1]}/${m[2]}/${m[3]}`;
 }
 
-function parseDiasToken(raw: string): number | null {
+function parseDiasToken(raw: string | null | undefined): number | null {
+  if (!raw) return null;
   const t = raw.replace(/\./g, '').replace(',', '.');
   if (!/^\d+$/.test(t)) return null;
   const n = Number(t);
@@ -173,11 +174,21 @@ export function parseVidaLaboralPeriodLine(line: string): PeriodoLaboral | null 
   let empresa = cleanEmpresa(empresaTokens.join(' '));
 
   const fechaAlta = toSlashDate(tokens[dateIdxs[0]]);
+  // Columnas oficiales: Alta | Efecto alta | Baja. Baja abierta = "---" (solo 2 fechas).
   let fechaBaja: string | null = null;
   if (dateIdxs.length >= 3) {
     fechaBaja = toSlashDate(tokens[dateIdxs[2]]);
-  } else if (dateIdxs.length >= 2) {
-    fechaBaja = toSlashDate(tokens[dateIdxs[1]]);
+  } else if (dateIdxs.length === 2) {
+    const afterSecond = tokens[dateIdxs[1] + 1] ?? '';
+    // Sigue de alta: dos fechas (alta+efecto) y placeholder "---"
+    if (afterSecond === '---' || OPEN_CCC.test(afterSecond)) {
+      fechaBaja = null;
+    } else {
+      // Layout raro sin columna de efecto: 2ª fecha = baja solo si difiere
+      const d0 = tokens[dateIdxs[0]];
+      const d1 = tokens[dateIdxs[1]];
+      fechaBaja = d0 !== d1 ? toSlashDate(d1) : null;
+    }
   }
 
   if (!fechaAlta) return null;
@@ -435,17 +446,78 @@ function spanishLongDateToDmy(day: string, monthWord: string, year: string): str
   return `${day.padStart(2, '0')}/${m}/${year}`;
 }
 
-function extractComputableDays(text: string): number | null {
-  // Bloque "días efectivamente computables … es de … 12.010 días"
-  const block = text.match(
-    /d[ií]as\s+efectivamente\s+computables[\s\S]{0,200}?(\d{1,2}\.\d{3}|\d{4,5})\s*d[ií]as/i
+export interface VidaLaboralDayTotals {
+  /** Días efectivamente computables (pensión / prestaciones). */
+  diasComputables: number | null;
+  anosComputables: number | null;
+  mesesComputables: number | null;
+  diasRestantesComputables: number | null;
+  /** Tiempo total en alta (incluye solapes). */
+  diasAltaTotal: number | null;
+  anosAltaTotal: number | null;
+  /** Días en pluriempleo / pluriactividad (alta − computables). */
+  diasPluriempleo: number | null;
+}
+
+/**
+ * Extrae ambos totales del informe TGSS.
+ * Para jubilación SIEMPRE usar el bloque «efectivamente computables»,
+ * no el total de días en alta (que incluye pluriempleo/pluriactividad).
+ */
+export function extractVidaLaboralDayTotals(text: string): VidaLaboralDayTotals {
+  const empty: VidaLaboralDayTotals = {
+    diasComputables: null,
+    anosComputables: null,
+    mesesComputables: null,
+    diasRestantesComputables: null,
+    diasAltaTotal: null,
+    anosAltaTotal: null,
+    diasPluriempleo: null,
+  };
+  if (!text?.trim()) return empty;
+
+  // …efectivamente computables… es de / 32 Años / 11.692 días 0 meses / 5 días
+  const computable = text.match(
+    /d[ií]as\s+efectivamente\s+computables[\s\S]{0,320}?(\d{1,2})\s*A[nñ]os[\s\S]{0,120}?(\d{1,2}\.\d{3}|\d{4,5})\s*d[ií]as(?:\s+(\d{1,2})\s*meses)?(?:\s+(\d{1,2})\s*d[ií]as)?/i
   );
-  if (block) {
-    const n = parseDiasToken(block[1]);
-    if (n) return n;
+
+  // ha figurado … alta … durante un total de / 34 Años / 12.574 días …
+  const alta = text.match(
+    /situaci[oó]n\s+de\s+alta[\s\S]{0,200}?durante un total de[\s\S]{0,80}?(\d{1,2})\s*A[nñ]os[\s\S]{0,120}?(\d{1,2}\.\d{3}|\d{4,5})\s*d[ií]as/i
+  );
+
+  const pluri = text.match(
+    /(?:pluriempleo|pluriactividad)[\s\S]{0,220}?durante un total de\s+(\d{1,2}\.\d{3}|\d{1,5})\s*d[ií]as/i
+  );
+
+  const diasComputables = computable ? parseDiasToken(computable[2]) : null;
+  const diasAltaTotal = alta ? parseDiasToken(alta[2]) : null;
+  let diasPluriempleo = pluri ? parseDiasToken(pluri[1]) : null;
+  if (
+    diasPluriempleo == null &&
+    diasAltaTotal != null &&
+    diasComputables != null &&
+    diasAltaTotal > diasComputables
+  ) {
+    diasPluriempleo = diasAltaTotal - diasComputables;
   }
 
-  // Primera mención tipo "12.332 días 9 meses" tras "durante un total"
+  return {
+    diasComputables,
+    anosComputables: computable ? Number(computable[1]) : null,
+    mesesComputables: computable?.[3] != null ? Number(computable[3]) : null,
+    diasRestantesComputables: computable?.[4] != null ? Number(computable[4]) : null,
+    diasAltaTotal,
+    anosAltaTotal: alta ? Number(alta[1]) : null,
+    diasPluriempleo,
+  };
+}
+
+function extractComputableDays(text: string): number | null {
+  const totals = extractVidaLaboralDayTotals(text);
+  if (totals.diasComputables != null) return totals.diasComputables;
+
+  // Fallback legado: primera cifra grande de días tras «durante un total»
   const narrative = text.match(
     /durante un total de[\s\S]{0,80}?(\d{1,2}\.\d{3}|\d{4,5})\s*d[ií]as/i
   );
@@ -475,12 +547,16 @@ export function parseVidaLaboralFromText(
   const narrative = extractIdentityFromNarrative(text);
   const periodos = parseVidaLaboralPeriodosFromText(text);
 
+  const totals = extractVidaLaboralDayTotals(text);
+  // Jubilación / prestaciones = días COMPUTABLES (nunca el total en alta)
   const dias =
-    extractComputableDays(text) ?? ss.diasCotizados ?? null;
+    totals.diasComputables ?? extractComputableDays(text) ?? ss.diasCotizados ?? null;
 
-  let anos = ss.anosCotizados;
-  let meses = ss.mesesCotizados;
-  if (dias != null) {
+  let anos = totals.anosComputables;
+  let meses = totals.mesesComputables;
+  let diasRestantes = totals.diasRestantesComputables;
+
+  if (dias != null && (anos == null || meses == null)) {
     anos = Math.floor(dias / 365.25);
     meses = Math.round((dias % 365.25) / 30.4375);
     if (meses >= 12) {
@@ -488,20 +564,15 @@ export function parseVidaLaboralFromText(
       meses = meses % 12;
     }
   }
+  // No usar «durante un total de N Años» del bloque de ALTA (infla por pluriempleo).
 
-  // Narrativa: "33 Años" cerca del total
-  const anosMatch = text.match(/durante un total de\s*\n?\s*(\d{1,2})\s*A[nñ]os/i);
-  if (anosMatch && (anos == null || Number(anosMatch[1]) >= anos)) {
-    anos = Number(anosMatch[1]);
-  }
-
-  // Régimen: mayoría de periodos de contrato → general (aunque haya autónomos)
+  // Régimen principal por volumen de periodos (no por la 1ª mención AUTONOMO del PDF)
   const regimenPrincipal =
-    periodos.periodosContrato.length >= periodos.periodosAutonomo.length
-      ? ss.regimen === 'autonomos' && periodos.periodosContrato.length === 0
-        ? 'autonomos'
-        : ss.regimen ?? 'general'
-      : 'autonomos';
+    periodos.periodosContrato.length === 0 && periodos.periodosAutonomo.length > 0
+      ? 'autonomos'
+      : periodos.periodosContrato.length > 0
+        ? 'general'
+        : ss.regimen ?? null;
 
   const fechaNac = narrative.fechaNacimiento ?? ss.fechaNacimiento;
 
@@ -522,7 +593,7 @@ export function parseVidaLaboralFromText(
       totalDiasCotizacion: dias,
       anosCotizados: anos,
       mesesCotizados: meses,
-      diasRestantes: null,
+      diasRestantes,
       regimenPrincipal,
       situacionActual: /situaci[oó]n\s*actual[^\n]*alta/i.test(text)
         ? 'ALTA'
@@ -537,6 +608,8 @@ export function parseVidaLaboralFromText(
               return spanishLongDateToDmy(m[1], m[2], m[3]);
             })()
           : text.match(/(\d{2}\/\d{2}\/\d{4})/)?.[1] ?? null,
+      diasAltaTotal: totals.diasAltaTotal,
+      diasPluriempleo: totals.diasPluriempleo,
     },
     ...periodos,
   };

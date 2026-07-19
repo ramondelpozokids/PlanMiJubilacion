@@ -17,6 +17,8 @@ export async function loadExpediente(userId: string): Promise<ExpedienteDigital 
 
   if (error || !data?.data) return null;
   const exp = data.data as ExpedienteDigital;
+  const { ensureResumenExactDates } = await import('./as-of');
+  ensureResumenExactDates(exp);
   const { pruneExpedienteToToday } = await import('./merge');
   const before = exp.bases.length;
   pruneExpedienteToToday(exp);

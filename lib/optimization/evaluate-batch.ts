@@ -4,6 +4,7 @@
  */
 import type { ExpedienteDigital } from '@/lib/expediente/types';
 import { evaluateScenario, type EconomicOutcome } from '@/lib/calculator/evaluate';
+import type { LifePathAssumptions } from '@/lib/calculator/life-path';
 import type { MiopStrategy } from './types';
 
 const DEFAULT_CHUNK = 75;
@@ -27,6 +28,7 @@ export async function evaluateBatch(
   options: {
     chunkSize?: number;
     asOf?: Date;
+    lifePath?: LifePathAssumptions;
     onProgress?: (done: number, total: number) => void;
   } = {}
 ): Promise<EconomicOutcome[]> {
@@ -37,7 +39,7 @@ export async function evaluateBatch(
   for (let i = 0; i < strategies.length; i += chunkSize) {
     const slice = strategies.slice(i, i + chunkSize);
     for (const s of slice) {
-      const o = evaluateScenario(expediente, s, asOf);
+      const o = evaluateScenario(expediente, s, asOf, options.lifePath);
       if (o) out.push(o);
     }
     options.onProgress?.(Math.min(strategies.length, i + slice.length), strategies.length);

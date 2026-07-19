@@ -3,8 +3,11 @@
  * y el motor oficial de anticipada (tablas BOE).
  */
 import { addMonths, format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import type { ExpedienteDigital } from '@/lib/expediente/types';
+import {
+  contributionMonthsFromExpediente,
+  resolveExpedienteAsOf,
+} from '@/lib/expediente/as-of';
 import { buildRetirementOutlook } from '@/lib/calculator/retirement-outlook';
 import { simulateScenario } from '@/lib/calculator/simulate';
 import { resolveOrdinaryRetirement } from '@/lib/rules/ss-rules';
@@ -79,9 +82,7 @@ function parseBirth(expediente: ExpedienteDigital): Date | null {
 }
 
 function monthsContributed(expediente: ExpedienteDigital): number {
-  const y = expediente.resumen.anosCotizados?.value ?? 0;
-  const m = expediente.resumen.mesesCotizados?.value ?? 0;
-  return y * 12 + m;
+  return contributionMonthsFromExpediente(expediente);
 }
 
 function mapModality(
@@ -194,7 +195,7 @@ export function buildDateSimulation(
   return {
     label: 'Fecha seleccionada',
     retirementDate,
-    retirementDateLabel: format(retirementDate, 'd MMMM yyyy', { locale: es }),
+    retirementDateLabel: format(retirementDate, 'dd/MM/yyyy'),
     modality: mapped.modality,
     modalityLabel: mapped.label,
     age: sim.retirementAge,
@@ -212,8 +213,8 @@ export function buildDateSimulation(
     notes: resolution.notes.join(' ') || sim.notes,
     calculation: {
       ...resolution,
-      ordinaryDateLabel: format(ordinary, 'd MMMM yyyy', { locale: es }),
-      chosenDateLabel: format(retirementDate, 'd MMMM yyyy', { locale: es }),
+      ordinaryDateLabel: format(ordinary, 'dd/MM/yyyy'),
+      chosenDateLabel: format(retirementDate, 'dd/MM/yyyy'),
       finalMonthly: monthlyPension,
       ordinaryMonthlyBeforeReduction: ordinaryBefore,
     },
@@ -281,7 +282,11 @@ export function personalStatsFromBirth(birthIso: string, asOf = new Date()) {
 
 export function getOutlookSafe(expediente: ExpedienteDigital) {
   try {
-    return buildRetirementOutlook(expediente, new Date(), FOUNDER_LIFE_PATH);
+    return buildRetirementOutlook(
+      expediente,
+      resolveExpedienteAsOf(expediente),
+      FOUNDER_LIFE_PATH
+    );
   } catch {
     return null;
   }

@@ -17,6 +17,7 @@ import {
   parseDmy,
   endOfToday,
 } from './sanitize';
+import { resolveExpedienteAsOf } from './as-of';
 
 function valuesEqual(a: unknown, b: unknown): boolean {
   if (a == null && b == null) return true;
@@ -225,6 +226,24 @@ export function mergeDocumentIntoExpediente(
         ? { value: Number(res.baseMensualActual), sources: [source] }
         : null
     );
+    expediente.resumen.diasAltaTotal = mergePreferIncoming(
+      expediente.resumen.diasAltaTotal,
+      res.diasAltaTotal != null ? { value: Number(res.diasAltaTotal), sources: [source] } : null
+    );
+    expediente.resumen.diasPluriempleo = mergePreferIncoming(
+      expediente.resumen.diasPluriempleo,
+      res.diasPluriempleo != null
+        ? { value: Number(res.diasPluriempleo), sources: [source] }
+        : null
+    );
+    expediente.resumen.diasRestantes = mergePreferIncoming(
+      expediente.resumen.diasRestantes,
+      res.diasRestantes != null ? { value: Number(res.diasRestantes), sources: [source] } : null
+    );
+    expediente.resumen.fechaInforme = mergePreferIncoming(
+      expediente.resumen.fechaInforme,
+      res.fechaInforme ? { value: String(res.fechaInforme), sources: [source] } : null
+    );
   } else {
     expediente.resumen.totalDiasCotizacion = mergeSourcedScalar(
       expediente.resumen.totalDiasCotizacion,
@@ -282,6 +301,40 @@ export function mergeDocumentIntoExpediente(
         ? { value: Number(res.baseMensualActual), sources: [source] }
         : null,
       'baseMensualActual',
+      documentId,
+      documentName,
+      expediente.discrepancies
+    );
+    expediente.resumen.diasAltaTotal = mergeSourcedScalar(
+      expediente.resumen.diasAltaTotal,
+      res.diasAltaTotal != null ? { value: Number(res.diasAltaTotal), sources: [source] } : null,
+      'diasAltaTotal',
+      documentId,
+      documentName,
+      expediente.discrepancies
+    );
+    expediente.resumen.diasPluriempleo = mergeSourcedScalar(
+      expediente.resumen.diasPluriempleo,
+      res.diasPluriempleo != null
+        ? { value: Number(res.diasPluriempleo), sources: [source] }
+        : null,
+      'diasPluriempleo',
+      documentId,
+      documentName,
+      expediente.discrepancies
+    );
+    expediente.resumen.diasRestantes = mergeSourcedScalar(
+      expediente.resumen.diasRestantes,
+      res.diasRestantes != null ? { value: Number(res.diasRestantes), sources: [source] } : null,
+      'diasRestantes',
+      documentId,
+      documentName,
+      expediente.discrepancies
+    );
+    expediente.resumen.fechaInforme = mergeSourcedScalar(
+      expediente.resumen.fechaInforme,
+      res.fechaInforme ? { value: String(res.fechaInforme), sources: [source] } : null,
+      'fechaInforme',
       documentId,
       documentName,
       expediente.discrepancies
@@ -369,18 +422,19 @@ export function stripSimulationOnlyBases(expediente: ExpedienteDigital): void {
   });
 }
 
-/** Deja el expediente anclado al presente real (sin proyecciones futuras). */
+/** Deja el expediente anclado a la fecha del informe VL (o hoy). */
 export function pruneExpedienteToToday(expediente: ExpedienteDigital): void {
   stripSimulationOnlyBases(expediente);
+  const asOf = resolveExpedienteAsOf(expediente);
   expediente.bases = expediente.bases.filter((b) =>
-    isContributionMonthOnOrBeforeToday(b.periodo?.value ?? null)
+    isContributionMonthOnOrBeforeToday(b.periodo?.value ?? null, asOf)
   );
   expediente.periodos = expediente.periodos
-    .map((p) => filterPeriodToToday(p))
+    .map((p) => filterPeriodToToday(p, asOf))
     .filter((p): p is NonNullable<typeof p> => p != null);
   expediente.prestaciones = expediente.prestaciones.filter((p) => {
     const ini = parseDmy(p.fechaInicio?.value ?? null);
-    return !(ini && ini.getTime() > endOfToday().getTime());
+    return !(ini && ini.getTime() > endOfToday(asOf).getTime());
   });
 }
 

@@ -4,6 +4,7 @@
  */
 import { addMonths, addYears, differenceInMonths } from 'date-fns';
 import type { ExpedienteDigital } from '@/lib/expediente/types';
+import { contributionMonthsFromExpediente } from '@/lib/expediente/as-of';
 import {
   getActiveSsRules,
   resolveOrdinaryRetirement,
@@ -94,9 +95,7 @@ export function generateMiopStrategies(
   mode: MiopSweepMode = 'standard'
 ): MiopStrategy[] {
   const birth = parseBirth(expediente);
-  const anos = expediente.resumen.anosCotizados?.value ?? 0;
-  const meses = expediente.resumen.mesesCotizados?.value ?? 0;
-  const totalMonths = anos * 12 + meses;
+  const totalMonths = contributionMonthsFromExpediente(expediente);
   if (!birth || totalMonths <= 0) return [];
 
   const dates = collectDates(birth, asOf, totalMonths, mode);

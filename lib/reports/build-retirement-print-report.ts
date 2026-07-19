@@ -7,6 +7,7 @@ import type { ExpedienteDigital } from '@/lib/expediente/types';
 import type { LifePathAssumptions } from '@/lib/calculator/life-path';
 import { DEFAULT_LIFE_PATH, describeLifePathTramos } from '@/lib/calculator/life-path';
 import { buildRetirementOutlook } from '@/lib/calculator/retirement-outlook';
+import { resolveExpedienteAsOf } from '@/lib/expediente/as-of';
 import {
   buildDateSimulation,
   PENSION_ANNUAL_PAYMENTS,
@@ -82,7 +83,7 @@ export function buildRetirementPrintReport(
   } = {}
 ): RetirementPrintReport | null {
   const lifePath = options.lifePath ?? DEFAULT_LIFE_PATH;
-  const asOf = options.asOf ?? new Date();
+  const asOf = options.asOf ?? resolveExpedienteAsOf(expediente);
   const outlook = buildRetirementOutlook(expediente, asOf, lifePath);
   if (!outlook) return null;
 

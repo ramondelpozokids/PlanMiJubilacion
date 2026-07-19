@@ -14,6 +14,7 @@ import { listDocumentedBases } from './from-expediente';
 import { applyEarlyReduction, getRealPensionSnapshot } from './real-pension';
 import { DEFAULT_LIFE_PATH, type LifePathAssumptions } from './life-path';
 import type { MiopStrategy } from '@/lib/optimization/types';
+import { contributionMonthsFromExpediente } from '@/lib/expediente/as-of';
 
 export interface EconomicOutcome {
   strategyId: string;
@@ -64,12 +65,11 @@ function avgBases(expediente: ExpedienteDigital): number | null {
 export function evaluateScenario(
   expediente: ExpedienteDigital,
   strategy: MiopStrategy,
-  asOf: Date = new Date()
+  asOf: Date = new Date(),
+  baseLifePath: LifePathAssumptions = DEFAULT_LIFE_PATH
 ): EconomicOutcome | null {
   const birth = parseBirth(expediente);
-  const anos = expediente.resumen.anosCotizados?.value ?? 0;
-  const meses = expediente.resumen.mesesCotizados?.value ?? 0;
-  const totalMonths = anos * 12 + meses;
+  const totalMonths = contributionMonthsFromExpediente(expediente);
   if (!birth || totalMonths <= 0) return null;
 
   const eco = getActiveEconomicParams();
@@ -85,7 +85,7 @@ export function evaluateScenario(
   const yearsAtRet =
     (totalMonths + Math.max(0, differenceInMonths(retirementDate, asOf))) / 12;
 
-  let lifePath: LifePathAssumptions = { ...DEFAULT_LIFE_PATH };
+  let lifePath: LifePathAssumptions = { ...baseLifePath };
   if (strategy.subsidioMayores52From) {
     lifePath = {
       ...lifePath,

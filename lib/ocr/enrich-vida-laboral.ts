@@ -91,20 +91,24 @@ export function enrichVidaLaboralFromRawText(
 
   const existing = ocr.informeCompleto;
   const existingCount = countPeriodos(existing);
-  const preferParsedPeriodos = parsedCount > existingCount;
-
-  const periodosContrato = preferParsedPeriodos
-    ? parsed.periodosContrato
-    : mergePeriodLists(existing.periodosContrato, parsed.periodosContrato);
-  const periodosAutonomo = preferParsedPeriodos
-    ? parsed.periodosAutonomo
-    : mergePeriodLists(existing.periodosAutonomo, parsed.periodosAutonomo);
-  const situacionesAsimiladas = preferParsedPeriodos
-    ? parsed.situacionesAsimiladas
-    : mergePeriodLists(existing.situacionesAsimiladas, parsed.situacionesAsimiladas);
-  const prestacionesDesempleo = preferParsedPeriodos
-    ? parsed.prestacionesDesempleo
-    : mergePrestaciones(existing.prestacionesDesempleo, parsed.prestacionesDesempleo);
+  // Unión siempre: evita perder periodos si OCR o parser traen subconjuntos distintos
+  const periodosContrato = mergePeriodLists(
+    existing.periodosContrato,
+    parsed.periodosContrato
+  );
+  const periodosAutonomo = mergePeriodLists(
+    existing.periodosAutonomo,
+    parsed.periodosAutonomo
+  );
+  const situacionesAsimiladas = mergePeriodLists(
+    existing.situacionesAsimiladas,
+    parsed.situacionesAsimiladas
+  );
+  const prestacionesDesempleo = mergePrestaciones(
+    existing.prestacionesDesempleo,
+    parsed.prestacionesDesempleo
+  );
+  const preferParsedPeriodos = parsedCount >= existingCount;
 
   const fechaNac =
     parsed.identificacion.fechaNacimiento ?? existing.identificacion.fechaNacimiento;
@@ -128,9 +132,12 @@ export function enrichVidaLaboralFromRawText(
         parsed.resumen.totalDiasCotizacion ?? existing.resumen.totalDiasCotizacion,
       anosCotizados: parsed.resumen.anosCotizados ?? existing.resumen.anosCotizados,
       mesesCotizados: parsed.resumen.mesesCotizados ?? existing.resumen.mesesCotizados,
+      diasRestantes: parsed.resumen.diasRestantes ?? existing.resumen.diasRestantes,
       regimenPrincipal: parsed.resumen.regimenPrincipal ?? existing.resumen.regimenPrincipal,
       situacionActual: parsed.resumen.situacionActual ?? existing.resumen.situacionActual,
       fechaInforme: parsed.resumen.fechaInforme ?? existing.resumen.fechaInforme,
+      diasAltaTotal: parsed.resumen.diasAltaTotal ?? existing.resumen.diasAltaTotal,
+      diasPluriempleo: parsed.resumen.diasPluriempleo ?? existing.resumen.diasPluriempleo,
     },
     periodosContrato,
     periodosAutonomo,

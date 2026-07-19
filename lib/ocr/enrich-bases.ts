@@ -1,8 +1,20 @@
 import { parseAllBasesFromText } from '@/lib/ai/parse-informe-bases-integral';
 import { mergeParsedBasesIntoExtraction } from '@/lib/ai/parse-bases-cotizacion';
-import { isContributionMonthOnOrBeforeToday } from '@/lib/expediente/sanitize';
+import { isContributionMonthOnOrBeforeToday, parseDmy } from '@/lib/expediente/sanitize';
 import type { FullDocumentExtraction } from '@/lib/ai/vida-laboral-types';
 import type { DocumentTypeKey } from '@/lib/expediente/document-types';
+
+/** Fecha del informe de bases (cabecera) o de la VL ya enrichada. */
+function resolveBasesAsOf(ocr: FullDocumentExtraction): Date {
+  const fromResumen = parseDmy(ocr.informeCompleto.resumen.fechaInforme);
+  if (fromResumen) return fromResumen;
+  const m = ocr.rawText?.match(/Fecha:\s*(\d{2}\/\d{2}\/\d{4})/i);
+  if (m) {
+    const d = parseDmy(m[1]);
+    if (d) return d;
+  }
+  return new Date();
+}
 
 /**
  * Completa basesCotizacion desde el texto del PDF (informe integral SS).
@@ -18,15 +30,16 @@ export function enrichBasesFromRawText(
 
   if (!shouldParse || !ocr.rawText?.trim()) return ocr;
 
-  const parsed = parseAllBasesFromText(ocr.rawText).filter((b) =>
-    isContributionMonthOnOrBeforeToday(b.periodo)
+  const asOf = resolveBasesAsOf(ocr);
+  const parsed = parseAllBasesFromText(ocr.rawText, asOf).filter((b) =>
+    isContributionMonthOnOrBeforeToday(b.periodo, asOf)
   );
   if (parsed.length === 0) return ocr;
 
   const merged = mergeParsedBasesIntoExtraction(
     ocr.informeCompleto.basesCotizacion,
     parsed
-  ).filter((b) => isContributionMonthOnOrBeforeToday(b.periodo));
+  ).filter((b) => isContributionMonthOnOrBeforeToday(b.periodo, asOf));
 
   const last = merged[merged.length - 1];
 
@@ -39,6 +52,7 @@ export function enrichBasesFromRawText(
         ...ocr.informeCompleto.otrosDatos,
         basesDesdeTexto: parsed.length,
         basesLayout: 'informe_integral',
+        basesAsOf: `${String(asOf.getDate()).padStart(2, '0')}/${String(asOf.getMonth() + 1).padStart(2, '0')}/${asOf.getFullYear()}`,
       },
     },
     basesUltimos24: merged

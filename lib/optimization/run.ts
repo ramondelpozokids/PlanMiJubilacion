@@ -4,6 +4,7 @@
  */
 import type { ExpedienteDigital } from '@/lib/expediente/types';
 import { evaluateScenario } from '@/lib/calculator/evaluate';
+import type { LifePathAssumptions } from '@/lib/calculator/life-path';
 import { economicParamsFingerprint } from '@/lib/rules/economic';
 import { generateMiopStrategies } from './generate';
 import { evaluateBatch } from './evaluate-batch';
@@ -14,12 +15,13 @@ import type { MiopRunResult, MiopSweepMode } from './types';
 export function runMiop(
   expediente: ExpedienteDigital,
   asOf: Date = new Date(),
-  mode: MiopSweepMode = 'standard'
+  mode: MiopSweepMode = 'standard',
+  lifePath?: LifePathAssumptions
 ): MiopRunResult {
   const t0 = Date.now();
   const strategies = generateMiopStrategies(expediente, asOf, mode);
   const outcomes = strategies
-    .map((s) => evaluateScenario(expediente, s, asOf))
+    .map((s) => evaluateScenario(expediente, s, asOf, lifePath))
     .filter((o): o is NonNullable<typeof o> => o != null);
 
   return finish(outcomes, strategies.length, mode, t0);
@@ -31,6 +33,7 @@ export async function runMiopSweep(
   options: {
     mode?: MiopSweepMode;
     asOf?: Date;
+    lifePath?: LifePathAssumptions;
     onProgress?: (done: number, total: number) => void;
   } = {}
 ): Promise<MiopRunResult> {
@@ -40,6 +43,7 @@ export async function runMiopSweep(
   const strategies = generateMiopStrategies(expediente, asOf, mode);
   const outcomes = await evaluateBatch(expediente, strategies, {
     asOf,
+    lifePath: options.lifePath,
     onProgress: options.onProgress,
   });
   return finish(outcomes, strategies.length, mode, t0);

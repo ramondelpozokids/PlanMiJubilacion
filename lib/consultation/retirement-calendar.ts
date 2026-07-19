@@ -24,7 +24,7 @@ export function buildRetirementCalendar(
     dateLabel: format(asOf, 'dd/MM/yyyy', { locale: es }),
     sortKey: format(asOf, 'yyyyMMdd'),
     title: 'Hoy',
-    detail: `${outlook.ageTodayLabel} · ${outlook.carrera.years} años y ${outlook.carrera.months} meses cotizados`,
+    detail: `${outlook.ageTodayLabel} · ${outlook.carreraLabel} cotizados`,
     kind: 'today',
   });
 

@@ -1,5 +1,5 @@
 /**
- * One-shot: releer vida laboral de Carlos y volcarla en su consulta de asesoría.
+ * Releer vida laboral + bases de Carlos y volcarlas en su consulta.
  * Uso: npx tsx scripts/reprocess-carlos-vida.ts
  */
 import fs from 'fs';
@@ -8,11 +8,17 @@ import { extractPdfText } from '../lib/pdf/extract-text';
 import { parseVidaLaboralFromText } from '../lib/ai/parse-vida-laboral';
 import { toFullDocumentExtraction, mergeVidaLaboral } from '../lib/ai/vida-laboral-full';
 import type { VidaLaboralCompleta } from '../lib/ai/vida-laboral-types';
+import { enrichBasesFromRawText } from '../lib/ocr/enrich-bases';
+import { enrichVidaLaboralFromRawText } from '../lib/ocr/enrich-vida-laboral';
 import { normalizeByDocumentType } from '../lib/expediente/normalize';
 import { mergeDocumentIntoExpediente } from '../lib/expediente/merge';
 import { applyCrossValidation } from '../lib/validation';
 import { finalizeExpediente } from '../lib/expediente/finalize';
 import { emptyExpediente, type ExpedienteDigital } from '../lib/expediente/types';
+import type { FullDocumentExtraction } from '../lib/ai/vida-laboral-types';
+
+const VL_PATH = 'C:/Users/X/Pictures/Carlos/vida_laboral.pdf';
+const BASES_PATH = 'C:/Users/X/Pictures/Carlos/Informe Bases Cotización Online.pdf';
 
 function loadEnv() {
   const raw = fs.readFileSync(path.join(process.cwd(), '.env.local'), 'utf8');
@@ -82,7 +88,6 @@ async function storageUpload(
   });
   if (!res.ok) {
     const t = await res.text();
-    // ya existe → ok
     if (!/already exists|Duplicate/i.test(t)) console.warn('storage:', t);
   }
   return storagePath;
@@ -111,6 +116,8 @@ function emptyInforme(): VidaLaboralCompleta {
       regimenPrincipal: null,
       situacionActual: null,
       fechaInforme: null,
+      diasAltaTotal: null,
+      diasPluriempleo: null,
     },
     periodosContrato: [],
     periodosAutonomo: [],
@@ -124,52 +131,131 @@ function emptyInforme(): VidaLaboralCompleta {
   };
 }
 
+type CaseRow = {
+  id: string;
+  founder_id: string;
+  client_name: string;
+  expediente_data: ExpedienteDigital | null;
+};
+
+type DocRow = { id: string; name: string; document_type: string; storage_path: string };
+
+async function upsertDoc(
+  url: string,
+  key: string,
+  caseRow: CaseRow,
+  docs: DocRow[],
+  opts: {
+    match: (d: DocRow) => boolean;
+    name: string;
+    documentType: 'vida_laboral' | 'bases_cotizacion';
+    storageFile: string;
+    buf: Buffer;
+    extraction: FullDocumentExtraction;
+  }
+): Promise<DocRow> {
+  let doc = docs.find(opts.match) ?? null;
+  if (!doc) {
+    const storagePath = `${caseRow.founder_id}/consultas/${caseRow.id}/${opts.storageFile}`;
+    await storageUpload(url, key, storagePath, opts.buf);
+    doc = await restPost<DocRow>(url, key, 'documents', {
+      user_id: caseRow.founder_id,
+      name: opts.name,
+      mime_type: 'application/pdf',
+      size_bytes: opts.buf.length,
+      storage_path: storagePath,
+      document_type: opts.documentType,
+      ocr_status: 'completed',
+      consultation_case_id: caseRow.id,
+      ocr_data: opts.extraction,
+      ocr_confidence: 0.92,
+    });
+  } else {
+    await restPatch(url, key, `documents?id=eq.${doc.id}`, {
+      ocr_status: 'completed',
+      ocr_error: null,
+      ocr_data: opts.extraction,
+      ocr_confidence: 0.92,
+      document_type: opts.documentType,
+    });
+  }
+  return doc;
+}
+
+function stripDoc(expediente: ExpedienteDigital, docId: string): ExpedienteDigital {
+  return {
+    ...expediente,
+    periodos: (expediente.periodos ?? []).filter(
+      (p) => !p.sources?.some((s) => s.documentId === docId)
+    ),
+    prestaciones: (expediente.prestaciones ?? []).filter(
+      (p) => !p.sources?.some((s) => s.documentId === docId)
+    ),
+    bases: (expediente.bases ?? []).filter(
+      (b) => !b.sources?.some((s) => s.documentId === docId)
+    ),
+  };
+}
+
 async function main() {
   loadEnv();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error('Faltan credenciales Supabase en .env.local');
+  if (!fs.existsSync(VL_PATH)) throw new Error(`No existe ${VL_PATH}`);
+  if (!fs.existsSync(BASES_PATH)) throw new Error(`No existe ${BASES_PATH}`);
 
-  const pdfPath = 'C:/Users/X/Pictures/Carlos/vida_laboral.pdf';
-  if (!fs.existsSync(pdfPath)) throw new Error(`No existe ${pdfPath}`);
+  const vlBuf = fs.readFileSync(VL_PATH);
+  const basesBuf = fs.readFileSync(BASES_PATH);
 
-  const buf = fs.readFileSync(pdfPath);
-  const { text, totalPages } = await extractPdfText(buf);
-  const parsed = parseVidaLaboralFromText(text, 'vida_laboral');
-  if (parsed.periodosContrato.length >= parsed.periodosAutonomo.length) {
-    parsed.resumen.regimenPrincipal = 'general';
-  }
+  const vlExtract = await extractPdfText(vlBuf);
+  const basesExtract = await extractPdfText(basesBuf);
 
+  const parsedVl = parseVidaLaboralFromText(vlExtract.text, 'vida_laboral');
   const informe = mergeVidaLaboral(emptyInforme(), {
-    ...parsed,
-    paginasProcesadas: totalPages,
+    ...parsedVl,
+    paginasProcesadas: vlExtract.totalPages,
     otrosDatos: { modo: 'reprocess_carlos_local' },
   });
-  const extraction = toFullDocumentExtraction(informe, text, 0.9);
+  let vlExtraction = toFullDocumentExtraction(informe, vlExtract.text, 0.92);
+  vlExtraction = enrichVidaLaboralFromRawText(vlExtraction, 'vida_laboral');
+
+  let basesExtraction = toFullDocumentExtraction(
+    {
+      ...emptyInforme(),
+      documentType: 'bases_cotizacion',
+      paginasProcesadas: basesExtract.totalPages,
+      otrosDatos: { modo: 'reprocess_carlos_bases' },
+    },
+    basesExtract.text,
+    0.92
+  );
+  basesExtraction = enrichBasesFromRawText(basesExtraction, 'bases_cotizacion');
 
   console.log(
     JSON.stringify(
       {
-        nombre: informe.identificacion.nombre,
-        dni: informe.identificacion.dni,
-        dias: informe.resumen.totalDiasCotizacion,
-        anos: informe.resumen.anosCotizados,
-        contratos: informe.periodosContrato.length,
-        autonomos: informe.periodosAutonomo.length,
-        asimiladas: informe.situacionesAsimiladas.length,
-        desempleo: informe.prestacionesDesempleo.length,
+        vl: {
+          nombre: vlExtraction.informeCompleto.identificacion.nombre,
+          dias: vlExtraction.informeCompleto.resumen.totalDiasCotizacion,
+          contratos: vlExtraction.informeCompleto.periodosContrato.length,
+          autonomos: vlExtraction.informeCompleto.periodosAutonomo.length,
+          asimiladas: vlExtraction.informeCompleto.situacionesAsimiladas.length,
+          desempleo: vlExtraction.informeCompleto.prestacionesDesempleo.length,
+          situacion: vlExtraction.informeCompleto.resumen.situacionActual,
+          regimen: vlExtraction.informeCompleto.resumen.regimenPrincipal,
+          openAlta: [
+            ...vlExtraction.informeCompleto.periodosContrato,
+            ...vlExtraction.informeCompleto.periodosAutonomo,
+          ].filter((p) => !p.fechaBaja).length,
+        },
+        bases: vlExtraction.informeCompleto.basesCotizacion.length,
+        basesMeses: basesExtraction.informeCompleto.basesCotizacion.length,
       },
       null,
       2
     )
   );
-
-  type CaseRow = {
-    id: string;
-    founder_id: string;
-    client_name: string;
-    expediente_data: ExpedienteDigital | null;
-  };
 
   const cases = await restGet<CaseRow[]>(
     url,
@@ -182,71 +268,68 @@ async function main() {
     cases.find((c) => /rodriguez|kobe/i.test(c.client_name)) ?? cases[0];
   console.log(`Consulta: ${caseRow.client_name} (${caseRow.id})`);
 
-  type DocRow = { id: string; name: string; document_type: string; storage_path: string };
   const docs = await restGet<DocRow[]>(
     url,
     key,
     `documents?select=id,name,document_type,storage_path&consultation_case_id=eq.${caseRow.id}&order=created_at.desc`
   );
 
-  let doc =
-    docs.find((d) => /vida.?laboral/i.test(d.name) || d.document_type === 'vida_laboral') ?? null;
+  const vlDoc = await upsertDoc(url, key, caseRow, docs, {
+    match: (d) => /vida.?laboral/i.test(d.name) || d.document_type === 'vida_laboral',
+    name: 'vida_laboral.pdf',
+    documentType: 'vida_laboral',
+    storageFile: 'vida_laboral-carlos.pdf',
+    buf: vlBuf,
+    extraction: vlExtraction,
+  });
 
-  if (!doc) {
-    const storagePath = `${caseRow.founder_id}/consultas/${caseRow.id}/vida_laboral-carlos.pdf`;
-    await storageUpload(url, key, storagePath, buf);
-    doc = await restPost<DocRow>(url, key, 'documents', {
-      user_id: caseRow.founder_id,
-      name: 'vida_laboral.pdf',
-      mime_type: 'application/pdf',
-      size_bytes: buf.length,
-      storage_path: storagePath,
-      document_type: 'vida_laboral',
-      ocr_status: 'completed',
-      consultation_case_id: caseRow.id,
-      ocr_data: extraction,
-      ocr_confidence: 0.9,
-    });
-  } else {
-    await restPatch(url, key, `documents?id=eq.${doc.id}`, {
-      ocr_status: 'completed',
-      ocr_error: null,
-      ocr_data: extraction,
-      ocr_confidence: 0.9,
-      document_type: 'vida_laboral',
-    });
-  }
-
-  const normalized = normalizeByDocumentType(
-    extraction,
-    doc.id,
-    doc.name || 'vida_laboral.pdf',
-    'vida_laboral'
-  );
+  const basesDoc = await upsertDoc(url, key, caseRow, docs, {
+    match: (d) =>
+      /bases/i.test(d.name) ||
+      d.document_type === 'bases_cotizacion' ||
+      d.document_type === 'bases',
+    name: 'Informe Bases Cotización Online.pdf',
+    documentType: 'bases_cotizacion',
+    storageFile: 'bases-carlos.pdf',
+    buf: basesBuf,
+    extraction: basesExtraction,
+  });
 
   let expediente: ExpedienteDigital =
     caseRow.expediente_data?.userId
       ? caseRow.expediente_data
       : emptyExpediente(caseRow.founder_id);
 
-  expediente = {
-    ...expediente,
-    periodos: (expediente.periodos ?? []).filter(
-      (p) => !p.sources?.some((s) => s.documentId === doc!.id)
-    ),
-    prestaciones: (expediente.prestaciones ?? []).filter(
-      (p) => !p.sources?.some((s) => s.documentId === doc!.id)
-    ),
-  };
+  expediente = stripDoc(expediente, vlDoc.id);
+  expediente = stripDoc(expediente, basesDoc.id);
+
+  const vlNorm = normalizeByDocumentType(
+    vlExtraction,
+    vlDoc.id,
+    vlDoc.name || 'vida_laboral.pdf',
+    'vida_laboral'
+  );
+  const basesNorm = normalizeByDocumentType(
+    basesExtraction,
+    basesDoc.id,
+    basesDoc.name || 'bases.pdf',
+    'bases_cotizacion'
+  );
 
   expediente = mergeDocumentIntoExpediente(
     expediente,
-    normalized,
-    doc.id,
-    doc.name || 'vida_laboral.pdf'
+    vlNorm,
+    vlDoc.id,
+    vlDoc.name || 'vida_laboral.pdf'
+  );
+  expediente = mergeDocumentIntoExpediente(
+    expediente,
+    basesNorm,
+    basesDoc.id,
+    basesDoc.name || 'bases.pdf'
   );
   expediente = applyCrossValidation(expediente);
-  expediente = await finalizeExpediente(expediente, doc.name || 'vida_laboral.pdf');
+  expediente = await finalizeExpediente(expediente, 'reprocess-carlos');
 
   await restPatch(url, key, `consultation_cases?id=eq.${caseRow.id}`, {
     expediente_data: expediente,
@@ -259,9 +342,9 @@ async function main() {
       {
         ok: true,
         caseId: caseRow.id,
-        documentId: doc.id,
-        periodosEnExpediente: expediente.periodos.length,
+        periodos: expediente.periodos.length,
         prestaciones: expediente.prestaciones.length,
+        bases: expediente.bases.length,
         anos: expediente.resumen.anosCotizados?.value,
         meses: expediente.resumen.mesesCotizados?.value,
         score: expediente.completitud.score,

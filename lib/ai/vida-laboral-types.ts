@@ -42,6 +42,10 @@ export interface ResumenCotizacion {
   regimenPrincipal: string | null;
   situacionActual: string | null;
   fechaInforme: string | null;
+  /** Días en alta (incluye solapes). Informativo; no usar en pensión. */
+  diasAltaTotal?: number | null;
+  /** Días de pluriempleo/pluriactividad = alta − computables. */
+  diasPluriempleo?: number | null;
 }
 
 export interface BaseCotizacionMes {

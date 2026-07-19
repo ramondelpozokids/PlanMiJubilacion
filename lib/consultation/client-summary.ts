@@ -17,7 +17,7 @@ export function buildConsultationSummary(options: {
   const lines: string[] = [];
 
   lines.push(
-    `${clientName}: ${outlook.carrera.years} años y ${outlook.carrera.months} meses cotizados (${outlook.ageTodayLabel} hoy).`
+    `${clientName}: ${outlook.carreraLabel} cotizados (${outlook.ageTodayLabel} hoy).`
   );
 
   if (outlook.pension.ordinaryResult) {

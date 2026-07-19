@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { getProfile, createClient } from '@/lib/supabase/server';
 import { loadExpediente } from '@/lib/expediente/repository';
 import { buildRetirementOutlook } from '@/lib/calculator/retirement-outlook';
+import { resolveExpedienteAsOf } from '@/lib/expediente/as-of';
 import { RetirementOutlookCard } from '@/components/features/retirement-outlook-card';
 import { Subsidio52Card } from '@/components/features/subsidio-52-card';
 import { RetirementDateCalendar } from '@/components/features/retirement-date-calendar';
@@ -18,7 +19,9 @@ export default async function ComparatorPage() {
   const profile = await getProfile();
   const supabase = await createClient();
   const expediente = await loadExpediente(profile!.id);
-  const outlook = expediente ? buildRetirementOutlook(expediente) : null;
+  const outlook = expediente
+    ? buildRetirementOutlook(expediente, resolveExpedienteAsOf(expediente))
+    : null;
 
   const { data: scenarioRows } = await supabase
     .from('scenarios')

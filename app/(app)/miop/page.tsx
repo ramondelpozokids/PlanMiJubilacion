@@ -6,6 +6,7 @@ import { getProfile } from '@/lib/supabase/server';
 import { loadExpediente } from '@/lib/expediente/repository';
 import { runMiop } from '@/lib/optimization/run';
 import { DEFAULT_LIFE_PATH } from '@/lib/calculator/life-path';
+import { resolveExpedienteAsOf } from '@/lib/expediente/as-of';
 import { deriveSubsidio52Amounts, getSubsidio52Config } from '@/lib/rules/subsidio-52';
 import { formatCurrency } from '@/lib/utils';
 import { MiopFreeSimulator } from '@/components/features/miop-free-simulator';
@@ -40,7 +41,7 @@ export default async function MiopPage() {
     );
   }
 
-  const miop = runMiop(expediente, new Date(), 'standard');
+  const miop = runMiop(expediente, resolveExpedienteAsOf(expediente), 'standard');
   const defaultBase = deriveSubsidio52Amounts(getSubsidio52Config(2027)).baseCotizacion;
   const defaultRetirement =
     miop.podium[0]?.outcome.retirementDate != null

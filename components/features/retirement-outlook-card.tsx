@@ -31,7 +31,10 @@ export function RetirementOutlookCard({
         </CardTitle>
         <p className="text-sm text-muted-foreground font-normal">
           Cálculo con reglas SS {new Date().getFullYear()} · {outlook.ageTodayLabel} hoy ·{' '}
-          {outlook.carrera.years} años y {outlook.carrera.months} meses cotizados
+          {outlook.carreraLabel} cotizados
+          {outlook.asOf
+            ? ` · informe ${format(new Date(outlook.asOf), 'dd/MM/yyyy')}`
+            : ''}
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -44,8 +47,10 @@ export function RetirementOutlookCard({
             <p className="text-sm text-muted-foreground mt-1">
               A los {outlook.ordinary.ageLabel}
               {outlook.ordinary.at65IfCareer
-                ? ' · carrera completa en esa fecha (cotizando con subsidio +52)'
-                : ` · ${variant === 'consultation' ? 'faltan' : 'te faltan'} ${outlook.ordinary.monthsMissingForAge65} meses cotizados para poder a los 65`}
+                ? outlook.ordinary.careerCompleteDateLabel
+                  ? ` · ${variant === 'consultation' ? 'faltan' : 'te faltan'} ${outlook.ordinary.missingForAge65Label} (carrera completa el ${outlook.ordinary.careerCompleteDateLabel})`
+                  : ' · carrera completa en esa fecha'
+                : ` · ${variant === 'consultation' ? 'faltan' : 'te faltan'} ${outlook.ordinary.missingForAge65Label || `${outlook.ordinary.monthsMissingForAge65} meses`} para poder a los 65`}
             </p>
             <p className="text-xs text-muted-foreground mt-2">{outlook.ordinary.explanation}</p>
             {outlook.ordinaryIfFreeze && (
@@ -113,6 +118,27 @@ export function RetirementOutlookCard({
             </p>
           </div>
         </div>
+
+        {outlook.ordinary.ssSteps.length > 0 && (
+          <div className="rounded-md border bg-muted/20 p-4 text-sm space-y-3">
+            <p className="font-medium">Cómo calcula la Seguridad Social (4 pasos)</p>
+            <ol className="space-y-2.5">
+              {outlook.ordinary.ssSteps.map((step) => (
+                <li key={step.title}>
+                  <p className="font-medium text-foreground">{step.title}</p>
+                  <p className="text-muted-foreground mt-0.5 leading-relaxed">{step.detail}</p>
+                </li>
+              ))}
+            </ol>
+            {outlook.ordinary.at65IfCareer && (
+              <p className="text-xs text-muted-foreground pt-1 border-t border-border/50">
+                Conclusión: si {variant === 'consultation' ? 'continúa' : 'continúas'} cotizando con
+                normalidad, la SS reconoce la ordinaria el {outlook.ordinary.dateLabel} sin
+                penalización por edad.
+              </p>
+            )}
+          </div>
+        )}
 
         {(tramos.paro || tramos.subsidio) && (
           <div className="rounded-md border bg-muted/20 p-3 text-sm space-y-1">

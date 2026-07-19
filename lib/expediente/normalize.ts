@@ -132,8 +132,10 @@ export function normalizeFromVidaLaboral(
     })),
   ];
 
+  const asOf = parseDmy(res.fechaInforme) ?? new Date();
+
   const periodos = periodosRaw
-    .map((p) => filterPeriodToToday(p))
+    .map((p) => filterPeriodToToday(p, asOf))
     .filter((p): p is NonNullable<typeof p> => p != null);
 
   const prestaciones: NormalizedDocumentPayload['prestaciones'] =
@@ -151,8 +153,7 @@ export function normalizeFromVidaLaboral(
       }))
       .filter((p) => {
         const ini = parseDmy(p.fechaInicio?.value ?? null);
-        // Descarta prestaciones que empiezan en el futuro
-        if (ini && ini.getTime() > endOfToday().getTime()) return false;
+        if (ini && ini.getTime() > endOfToday(asOf).getTime()) return false;
         return true;
       });
 
@@ -163,7 +164,7 @@ export function normalizeFromVidaLaboral(
       regimen: sv(b.regimen, source),
       empresa: null,
     }))
-    .filter((b) => isContributionMonthOnOrBeforeToday(b.periodo?.value ?? null));
+    .filter((b) => isContributionMonthOnOrBeforeToday(b.periodo?.value ?? null, asOf));
 
   return {
     documentType,
@@ -183,10 +184,14 @@ export function normalizeFromVidaLaboral(
       totalDiasCotizacion: res.totalDiasCotizacion,
       anosCotizados: res.anosCotizados,
       mesesCotizados: res.mesesCotizados,
+      diasRestantes: res.diasRestantes ?? null,
+      fechaInforme: res.fechaInforme ?? null,
       regimenPrincipal: res.regimenPrincipal,
       situacionActual: res.situacionActual,
       empresaActual: sanitizeCompanyName(extraction.empresa),
       baseMensualActual: extraction.baseMensual,
+      diasAltaTotal: res.diasAltaTotal ?? null,
+      diasPluriempleo: res.diasPluriempleo ?? null,
     },
     periodos,
     prestaciones,
@@ -200,7 +205,7 @@ export function normalizeFromVidaLaboral(
       }))
       .filter((l) => {
         const desde = parseDmy(l.desde);
-        if (desde && desde.getTime() > endOfToday().getTime()) return false;
+        if (desde && desde.getTime() > endOfToday(asOf).getTime()) return false;
         return true;
       }),
     rawText: extraction.rawText,

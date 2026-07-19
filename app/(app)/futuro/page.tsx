@@ -12,6 +12,7 @@ import { ScopeBadge } from '@/components/features/scope-badge';
 import { formatCurrency } from '@/lib/utils';
 import { FOUNDER_LIFE_PATH } from '@/lib/calculator/life-path';
 import { buildRetirementOutlook } from '@/lib/calculator/retirement-outlook';
+import { resolveExpedienteAsOf } from '@/lib/expediente/as-of';
 
 export const metadata = { title: 'PlanMiFuturo', robots: { index: false } };
 
@@ -20,10 +21,11 @@ export default async function FuturoPage() {
   const profile = await getProfile();
   const expediente = await loadExpediente(profile!.id);
   const hasDocs = Boolean(expediente && expediente.documentIds.length > 0);
-  const miop = hasDocs ? runMiop(expediente!, new Date(), 'standard') : null;
+  const asOf = expediente ? resolveExpedienteAsOf(expediente) : new Date();
+  const miop = hasDocs ? runMiop(expediente!, asOf, 'standard') : null;
   const top = miop?.podium[0] ?? null;
   const outlook = hasDocs
-    ? buildRetirementOutlook(expediente!, new Date(), FOUNDER_LIFE_PATH)
+    ? buildRetirementOutlook(expediente!, asOf, FOUNDER_LIFE_PATH)
     : null;
 
   return (

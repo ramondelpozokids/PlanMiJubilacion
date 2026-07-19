@@ -8,6 +8,7 @@ import { getActiveSsRules, resolveOrdinaryRetirement } from '@/lib/rules/ss-rule
 import { computeAnticipation } from '@/lib/rules/early-retirement';
 import { getActiveEconomicParams } from '@/lib/rules/economic';
 import type { ExpedienteDigital } from '@/lib/expediente/types';
+import { contributionMonthsFromExpediente } from '@/lib/expediente/as-of';
 import { applyEarlyReduction, getRealPensionSnapshot } from './real-pension';
 import { DEFAULT_LIFE_PATH, type LifePathAssumptions } from './life-path';
 
@@ -69,14 +70,13 @@ function getAge(birth: Date, date: Date): number {
 
 function ordinaryDateFromExpediente(expediente: ExpedienteDigital, asOf: Date = new Date()): Date | null {
   const birthRaw = expediente.identificacion.fechaNacimiento?.value;
-  const anos = expediente.resumen.anosCotizados?.value ?? 0;
-  const meses = expediente.resumen.mesesCotizados?.value ?? 0;
+  const totalMonths = contributionMonthsFromExpediente(expediente);
   const dmy = birthRaw?.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-  if (!dmy || anos * 12 + meses <= 0) return null;
+  if (!dmy || totalMonths <= 0) return null;
   const birth = new Date(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1]));
   return resolveOrdinaryRetirement({
     birth,
-    monthsContributedNow: anos * 12 + meses,
+    monthsContributedNow: totalMonths,
     asOf,
     assumeContinueContributing: true,
   }).date;
@@ -123,9 +123,7 @@ export function simulateScenario(
   origin: ScenarioOrigin = 'custom'
 ): SimulatedScenario | null {
   const birthRaw = expediente.identificacion.fechaNacimiento?.value;
-  const anos = expediente.resumen.anosCotizados?.value ?? 0;
-  const meses = expediente.resumen.mesesCotizados?.value ?? 0;
-  const totalMonths = anos * 12 + meses;
+  const totalMonths = contributionMonthsFromExpediente(expediente);
   if (!birthRaw || totalMonths <= 0) return null;
 
   const dmy = birthRaw.match(/(\d{2})\/(\d{2})\/(\d{4})/);

@@ -27,24 +27,100 @@ function toPeriod(month: number, year: number): string {
   return `${String(month).padStart(2, '0')}/${year}`;
 }
 
+/** Normaliza celdas multilínea del PDF online SS. */
+function normalizeIntegralText(text: string): string {
+  return text
+    .replace(/Sin\s+base\s*\r?\n\s*registrada/gi, '---')
+    .replace(/Sin\s+base\s+registrada/gi, '---')
+    .replace(/Pendiente\s*\r?\n\s*de\s+actualizar/gi, 'pendiente')
+    .replace(/Pendiente\s+de\s+actualizar/gi, 'pendiente');
+}
+
+function countMonthSlots(rest: string): number {
+  const tokens = rest.split(/\s+/).filter(Boolean);
+  let n = 0;
+  for (const tok of tokens) {
+    if (tok === '---' || tok === '--') {
+      n++;
+      continue;
+    }
+    if (/^pendiente$/i.test(tok)) break;
+    if (/^\d{1,3}(?:\.\d{3})*,\d{2}$/.test(tok) || /^\d+,\d{2}$/.test(tok)) {
+      n++;
+      continue;
+    }
+  }
+  return n;
+}
+
+function isYearRowStop(line: string): boolean {
+  return (
+    /^((?:19|20)\d{2})\s+/.test(line) ||
+    /^R[ée]gimen:/i.test(line) ||
+    /^Enero\s+Febrero/i.test(line) ||
+    /^--\s+\d+\s+of/i.test(line) ||
+    /^(INFORME|REFERENCIA|Página|Datos|Apellidos|La |Las |Código|Sede)/i.test(line)
+  );
+}
+
+/** Une continuaciones de fila (p. ej. "Sin base" / "registrada" en líneas siguientes). */
+function coalesceYearRows(lines: string[]): string[] {
+  const out: string[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const yearMatch = line.match(/^((?:19|20)\d{2})\s+(.*)$/);
+    if (!yearMatch) {
+      out.push(line);
+      i++;
+      continue;
+    }
+    let rest = yearMatch[2];
+    let j = i + 1;
+    while (j < lines.length && countMonthSlots(rest) < 12) {
+      const next = lines[j];
+      if (isYearRowStop(next) && /^((?:19|20)\d{2})\s+/.test(next)) break;
+      if (isYearRowStop(next) && !/^(---|--|\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2}|pendiente|registrada|Sin|base)/i.test(next)) {
+        break;
+      }
+      if (/^R[ée]gimen:/i.test(next) || /^Enero\s+Febrero/i.test(next) || /^--\s+\d+\s+of/i.test(next)) {
+        break;
+      }
+      if (/^(INFORME|REFERENCIA|Página|Datos|Apellidos)/i.test(next)) break;
+      rest = `${rest} ${next}`;
+      j++;
+    }
+    out.push(`${yearMatch[1]} ${rest}`);
+    i = j;
+  }
+  return out;
+}
+
 /**
  * Extrae bases del informe integral SS (tablas por empresa/año).
  * Si hay varios regímenes/empresas el mismo mes, se suma.
  */
-export function parseInformeIntegralBases(text: string): ParsedBaseRow[] {
+export function parseInformeIntegralBases(
+  text: string,
+  asOf: Date = new Date()
+): ParsedBaseRow[] {
   if (!text?.trim()) return [];
 
   const byPeriod = new Map<string, { base: number; regimen: string | null; empresa: string | null }>();
-  const lines = text.split(/\r?\n/).map((l) => l.trim());
+  const lines = coalesceYearRows(
+    normalizeIntegralText(text)
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean)
+  );
 
   let regimen: string | null = null;
   let empresa: string | null = null;
 
   const add = (month: number, year: number, amount: number) => {
     if (month < 1 || month > 12 || year < 1950 || year > 2100) return;
-    const now = new Date();
-    if (year > now.getFullYear()) return;
-    if (year === now.getFullYear() && month > now.getMonth() + 1) return;
+    if (year > asOf.getFullYear()) return;
+    if (year === asOf.getFullYear() && month > asOf.getMonth() + 1) return;
 
     const periodo = toPeriod(month, year);
     const prev = byPeriod.get(periodo);
@@ -84,6 +160,12 @@ export function parseInformeIntegralBases(text: string): ParsedBaseRow[] {
         continue;
       }
       if (/^pendiente$/i.test(tok)) break;
+      if (/^sin$/i.test(tok) && /^base$/i.test(tokens[i + 1] ?? '')) {
+        // residual "Sin base" sin normalizar
+        month++;
+        i += tokens[i + 2] && /^registrada$/i.test(tokens[i + 2]) ? 3 : 2;
+        continue;
+      }
       if (/^\d{1,3}(?:\.\d{3})*,\d{2}$/.test(tok) || /^\d+,\d{2}$/.test(tok)) {
         const amount = parseSpanishAmount(tok);
         if (amount != null) add(month, year, amount);
@@ -109,9 +191,20 @@ export function parseInformeIntegralBases(text: string): ParsedBaseRow[] {
     });
 }
 
-/** Combina parser integral + parser legado MM/YYYY. Integral gana. */
-export function parseAllBasesFromText(text: string): ParsedBaseRow[] {
-  const integral = parseInformeIntegralBases(text);
+/**
+ * Combina parser integral + legado MM/YYYY.
+ * Si el texto es informe integral (rejilla Enero…Diciembre), no mezclar legado.
+ */
+export function parseAllBasesFromText(
+  text: string,
+  asOf: Date = new Date()
+): ParsedBaseRow[] {
+  const integral = parseInformeIntegralBases(text, asOf);
+  const looksIntegral =
+    /informe\s+integral\s+de\s+bases|Enero\s+Febrero\s+Marzo\s+Abril/i.test(text);
+  if (looksIntegral && integral.length > 0) return integral;
+  if (integral.length >= 24) return integral;
+
   const legacy: ParsedBaseRow[] = parseBasesFromText(text).map((r: LegacyRow) => ({
     periodo: r.periodo,
     base: r.base,

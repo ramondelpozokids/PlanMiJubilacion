@@ -6,12 +6,20 @@
 import { addMonths, addYears, differenceInMonths, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { ExpedienteDigital } from '@/lib/expediente/types';
+import { contributionMonthsFromExpediente, contributionYmdFromExpediente } from '@/lib/expediente/as-of';
 import {
   formatAgeYearsMonths,
   getActiveSsRules,
-  monthsToYearsMonths,
   resolveOrdinaryRetirement,
 } from '@/lib/rules/ss-rules';
+import {
+  addYmdToDate,
+  formatDateDmy,
+  monthsRequirementToYmd,
+  subtractYmd,
+  ymdLabel,
+  type Ymd,
+} from './career-ymd';
 import { computeAnticipation } from '@/lib/rules/early-retirement';
 import type { PensionResult } from './pension';
 import {
@@ -49,7 +57,9 @@ export interface RetirementOutlook {
   ageToday: number;
   ageTodayLabel: string;
   totalMonthsContributed: number;
-  carrera: { years: number; months: number };
+  /** Carrera computable con día (del informe VL). */
+  carrera: Ymd;
+  carreraLabel: string;
   ordinary: {
     ageYears: number;
     ageLabel: string;
@@ -57,9 +67,17 @@ export interface RetirementOutlook {
     dateLabel: string;
     at65IfCareer: boolean;
     monthsMissingForAge65: number;
+    /** Falta exacta hasta carrera a los 65 (p. ej. 4a 10m 29d). */
+    missingForAge65: Ymd;
+    missingForAge65Label: string;
+    /** Si sigue cotizando sin interrupción, cuándo alcanza la carrera exigida. */
+    careerCompleteDate: Date | null;
+    careerCompleteDateLabel: string | null;
     monthsProjectedAtRetirement: number;
     assumption: 'continue' | 'freeze';
     explanation: string;
+    /** Los 4 pasos del cálculo SS aplicados a este expediente. */
+    ssSteps: Array<{ title: string; detail: string }>;
   };
   ordinaryIfFreeze: {
     ageYears: number;
@@ -127,6 +145,11 @@ function ageExactYears(birth: Date, when: Date): number {
 }
 
 function dateLabel(d: Date): string {
+  return format(d, 'dd/MM/yyyy');
+}
+
+/** Forma larga opcional para textos narrativos. */
+export function dateLabelLong(d: Date): string {
   return format(d, "d 'de' MMMM 'de' yyyy", { locale: es });
 }
 
@@ -137,11 +160,8 @@ export function buildRetirementOutlook(
 ): RetirementOutlook | null {
   const rules = getActiveSsRules();
   const birth = parseBirthDate(expediente.identificacion.fechaNacimiento?.value);
-  const anos = expediente.resumen.anosCotizados?.value ?? 0;
-  const meses = expediente.resumen.mesesCotizados?.value ?? 0;
-  const totalMonths =
-    anos * 12 + meses ||
-    Math.round((expediente.resumen.totalDiasCotizacion?.value ?? 0) / 30.4375);
+  const totalMonths = contributionMonthsFromExpediente(expediente);
+  const carrera = contributionYmdFromExpediente(expediente);
 
   if (!birth || totalMonths <= 0) return null;
 
@@ -270,13 +290,74 @@ export function buildRetirementOutlook(
     }).note,
   };
 
+  const requiredFor65 = monthsRequirementToYmd(resolved.monthsRequiredFor65);
+  const missingForAge65 = subtractYmd(requiredFor65, carrera);
+  const careerCompleteDate =
+    missingForAge65.years + missingForAge65.months + missingForAge65.days > 0
+      ? addYmdToDate(asOf, missingForAge65)
+      : asOf;
+  const missingLabel = ymdLabel(missingForAge65);
+  const carreraLabel = ymdLabel(carrera);
+
+  let explanation = resolved.explanation;
+  if (resolved.at65) {
+    explanation =
+      `A ${carreraLabel} computables (informe ${dateLabel(asOf)}). ` +
+      (missingForAge65.years + missingForAge65.months + missingForAge65.days > 0
+        ? `Te faltan ${missingLabel} para los ${requiredFor65.years} años y ${requiredFor65.months} meses exigidos a los 65; cotizando sin interrupción los alcanzas el ${formatDateDmy(careerCompleteDate)}. `
+        : '') +
+      `Jubilación ordinaria: ${dateLabel(ordinaryDate)} (65 años).`;
+    if (isSubsidio52Active(lifePath)) {
+      explanation += ` (con cotización del subsidio +52 desde ${lifePath.subsidioMayores52From}).`;
+    }
+  } else if (isSubsidio52Active(lifePath)) {
+    explanation = `${resolved.explanation} (con cotización del subsidio +52 desde ${lifePath.subsidioMayores52From}).`;
+  }
+
+  const pctAtOrdinary =
+    ordinaryResult != null
+      ? `${ordinaryResult.percentageByYears.toFixed(0)} %`
+      : resolved.at65
+        ? '100 %'
+        : 'según años a esa fecha';
+
+  const ssSteps: Array<{ title: string; detail: string }> = [
+    {
+      title: '1. Edad de jubilación',
+      detail: resolved.at65
+        ? `Con el período mínimo de cotización exigido, la edad ordinaria es 65 años: ${dateLabel(ordinaryDate)}.`
+        : `Sin carrera completa a los 65, la ordinaria sería a los ${formatAgeYearsMonths(resolved.ageYears)} (${dateLabel(ordinaryDate)}).`,
+    },
+    {
+      title: '2. Base reguladora',
+      detail:
+        'En 2032 (período transitorio 2026–2040) la SS calcula con dos métodos y elige el más beneficioso, según las bases de cotización de los últimos años — no solo por años cotizados.' +
+        (ordinaryResult
+          ? ` Estimación actual de BR: ${Math.round(ordinaryResult.baseReguladora).toLocaleString('es-ES')} €/mes.`
+          : ' Relee el informe de bases para una estimación numérica.'),
+    },
+    {
+      title: '3. Porcentaje por años cotizados',
+      detail: resolved.at65
+        ? `Si continúas cotizando hasta ${dateLabel(ordinaryDate)}, superarás ${requiredFor65.years} años y ${requiredFor65.months} meses: corresponde el ${pctAtOrdinary} de la base reguladora (salvo otros límites legales).`
+        : `Con la proyección actual el porcentaje estimado es ${pctAtOrdinary} de la base reguladora.`,
+    },
+    {
+      title: '4. Coeficiente reductor (solo anticipada)',
+      detail: resolved.at65
+        ? `Si te jubilas el ${dateLabel(ordinaryDate)}, no hay penalización por edad. Si te adelantas, el descuento depende de los meses de anticipo y de los años cotizados, y es permanente.`
+        : 'Una jubilación anticipada aplica un coeficiente reductor permanente según meses de anticipo y carrera.',
+    },
+  ];
+
   return {
     asOf: asOf.toISOString(),
     birthDate: birthIso,
     ageToday,
     ageTodayLabel: formatAgeYearsMonths(ageTodayExact),
     totalMonthsContributed: totalMonths,
-    carrera: monthsToYearsMonths(totalMonths),
+    carrera,
+    carreraLabel,
     ordinary: {
       ageYears: resolved.ageYears,
       ageLabel: formatAgeYearsMonths(resolved.ageYears),
@@ -284,11 +365,20 @@ export function buildRetirementOutlook(
       dateLabel: dateLabel(ordinaryDate),
       at65IfCareer: resolved.at65,
       monthsMissingForAge65: resolved.monthsStillNeededFor65,
+      missingForAge65,
+      missingForAge65Label: missingLabel,
+      careerCompleteDate:
+        missingForAge65.years + missingForAge65.months + missingForAge65.days > 0
+          ? careerCompleteDate
+          : null,
+      careerCompleteDateLabel:
+        missingForAge65.years + missingForAge65.months + missingForAge65.days > 0
+          ? formatDateDmy(careerCompleteDate)
+          : null,
       monthsProjectedAtRetirement: resolved.monthsAtRetirement,
       assumption: resolved.assumption,
-      explanation: isSubsidio52Active(lifePath)
-        ? `${resolved.explanation} (con cotización del subsidio +52 desde ${lifePath.subsidioMayores52From}).`
-        : resolved.explanation,
+      explanation,
+      ssSteps,
     },
     ordinaryIfFreeze:
       freeze.at65 !== resolved.at65 || freeze.date.getTime() !== resolved.date.getTime()

@@ -4,6 +4,7 @@
  */
 import type { ExpedienteDigital } from '@/lib/expediente/types';
 import type { PensionInput } from './pension';
+import { contributionMonthsFromExpediente } from '@/lib/expediente/as-of';
 
 function parseBirthDate(raw: string | null | undefined): string | null {
   if (!raw) return null;
@@ -94,9 +95,7 @@ export function expedienteToPensionInput(
   if (!CALCULATIONS_ENABLED) return null;
 
   const birthDate = parseBirthDate(expediente.identificacion.fechaNacimiento?.value ?? null);
-  const anos = expediente.resumen.anosCotizados?.value ?? 0;
-  const meses = expediente.resumen.mesesCotizados?.value ?? 0;
-  const totalMonthsContributed = anos * 12 + meses;
+  const totalMonthsContributed = contributionMonthsFromExpediente(expediente);
   if (!birthDate || totalMonthsContributed <= 0) return null;
 
   const documented = listDocumentedBases(expediente);

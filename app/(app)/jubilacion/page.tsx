@@ -20,6 +20,7 @@ import { FOUNDER_LIFE_PATH } from '@/lib/calculator/life-path';
 import { FOUNDER_DISPLAY_NAME } from '@/lib/admin/config';
 import { buildRetirementPrintReport } from '@/lib/reports/build-retirement-print-report';
 import { RetirementPrintReport } from '@/components/features/retirement-print-report';
+import { resolveExpedienteAsOf } from '@/lib/expediente/as-of';
 
 export const metadata = { title: 'PlanMiJubilacion', robots: { index: false } };
 
@@ -27,8 +28,9 @@ export default async function JubilacionPage() {
   const product = getPlanMiProduct('jubilacion');
   const profile = await getProfile();
   const expediente = await loadExpediente(profile!.id);
+  const asOf = expediente ? resolveExpedienteAsOf(expediente) : new Date();
   const outlook = expediente
-    ? buildRetirementOutlook(expediente, new Date(), FOUNDER_LIFE_PATH)
+    ? buildRetirementOutlook(expediente, asOf, FOUNDER_LIFE_PATH)
     : null;
   const intlResult = evaluateInternationalCoordination(expediente?.internationalCotizaciones);
   const spainMonthly = outlook?.pension.ordinaryResult?.monthlyPension ?? null;

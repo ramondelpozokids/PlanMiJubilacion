@@ -8,6 +8,7 @@ import type { ExpedienteDigital } from '@/lib/expediente/types';
 import { formatCurrency } from '@/lib/utils';
 import { buildRetirementOutlook } from '@/lib/calculator/retirement-outlook';
 import { FOUNDER_LIFE_PATH } from '@/lib/calculator/life-path';
+import { resolveExpedienteAsOf } from '@/lib/expediente/as-of';
 import { PlanMiSuite } from '@/components/features/planmi-suite';
 import { ReportToolbar } from '@/components/features/print-button';
 import { DashboardToolsStrip } from '@/components/features/dashboard-tools-strip';
@@ -45,7 +46,9 @@ export default async function DashboardPage() {
       /bases/i.test(d.name ?? '')
   );
   const basesMissingDespiteDoc = hasBasesDoc && (stats?.basesDocumentadas ?? 0) === 0;
-  const outlook = exp ? buildRetirementOutlook(exp, new Date(), FOUNDER_LIFE_PATH) : null;
+  const outlook = exp
+    ? buildRetirementOutlook(exp, resolveExpedienteAsOf(exp), FOUNDER_LIFE_PATH)
+    : null;
   const displayName = resolveDisplayName({
     email: profile?.email,
     fullName: profile?.full_name,

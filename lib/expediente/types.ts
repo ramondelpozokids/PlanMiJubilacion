@@ -88,10 +88,18 @@ export interface ResumenExpediente {
   totalDiasCotizacion: SourcedValue<number> | null;
   anosCotizados: SourcedValue<number> | null;
   mesesCotizados: SourcedValue<number> | null;
+  /** Días restantes del bloque computable TGSS (años + meses + estos días). */
+  diasRestantes: SourcedValue<number> | null;
+  /** Fecha del informe de vida laboral (DD/MM/YYYY) — “hoy” del expediente. */
+  fechaInforme: SourcedValue<string> | null;
   regimenPrincipal: SourcedValue<string> | null;
   situacionActual: SourcedValue<string> | null;
   empresaActual: SourcedValue<string> | null;
   baseMensualActual: SourcedValue<number> | null;
+  /** Días en alta (incluye solapes). Informativo. */
+  diasAltaTotal: SourcedValue<number> | null;
+  /** Días pluriempleo/pluriactividad restados para prestaciones. */
+  diasPluriempleo: SourcedValue<number> | null;
 }
 
 export type DiscrepancySeverity = 'info' | 'warning' | 'error';
@@ -166,10 +174,14 @@ export function emptyExpediente(userId: string): ExpedienteDigital {
       totalDiasCotizacion: null,
       anosCotizados: null,
       mesesCotizados: null,
+      diasRestantes: null,
+      fechaInforme: null,
       regimenPrincipal: null,
       situacionActual: null,
       empresaActual: null,
       baseMensualActual: null,
+      diasAltaTotal: null,
+      diasPluriempleo: null,
     },
     periodos: [],
     prestaciones: [],

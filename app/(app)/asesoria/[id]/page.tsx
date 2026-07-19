@@ -30,6 +30,7 @@ import { ScopeBadge } from '@/components/features/scope-badge';
 import { buildRetirementPrintReport } from '@/lib/reports/build-retirement-print-report';
 import { RetirementPrintReport } from '@/components/features/retirement-print-report';
 import { format } from 'date-fns';
+import { resolveExpedienteAsOf } from '@/lib/expediente/as-of';
 
 export const metadata = { title: 'Consulta de cliente', robots: { index: false } };
 export const dynamic = 'force-dynamic';
@@ -46,9 +47,10 @@ export default async function AsesoriaCasePage({
   if (!c) notFound();
 
   const hasDocs = c.expediente.documentIds.length > 0;
-  const outlook = hasDocs ? buildRetirementOutlook(c.expediente, new Date(), c.lifePath) : null;
-  const miop = hasDocs ? runMiop(c.expediente) : null;
-  const calendar = outlook ? buildRetirementCalendar(outlook, c.lifePath) : [];
+  const asOf = resolveExpedienteAsOf(c.expediente);
+  const outlook = hasDocs ? buildRetirementOutlook(c.expediente, asOf, c.lifePath) : null;
+  const miop = hasDocs ? runMiop(c.expediente, asOf, 'standard', c.lifePath) : null;
+  const calendar = outlook ? buildRetirementCalendar(outlook, c.lifePath, asOf) : [];
   const intl = evaluateInternationalCoordination(c.expediente.internationalCotizaciones);
   const spainMonthly = outlook?.pension.ordinaryResult?.monthlyPension ?? null;
   const combined = buildCombinedPensionSummary({

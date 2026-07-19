@@ -3,6 +3,7 @@
  * La simulación oficial SS es solo referencia (hipótesis empleo continuo) — no prevalece.
  */
 import type { ExpedienteDigital } from '@/lib/expediente/types';
+import { contributionMonthsFromExpediente } from '@/lib/expediente/as-of';
 import { getActiveSsRules, resolveOrdinaryRetirement } from '@/lib/rules/ss-rules';
 import {
   applyOfficialEarlyReduction,
@@ -165,9 +166,7 @@ export function getRealPensionSnapshot(
   const documented = listDocumentedBases(expediente);
   const officialSimReference = getOfficialSimulation(expediente);
 
-  const anos = expediente.resumen.anosCotizados?.value ?? 0;
-  const meses = expediente.resumen.mesesCotizados?.value ?? 0;
-  const totalMonths = anos * 12 + meses;
+  const totalMonths = contributionMonthsFromExpediente(expediente);
 
   const birthIso = birthIsoFromExpediente(expediente);
   const [by, bm, bd] = birthIso.split('-').map(Number);

@@ -13,6 +13,7 @@ import type { ExpedienteDigital } from '@/lib/expediente/types';
 import { isFullDocumentExtraction } from '@/lib/ai/vida-laboral-types';
 import { buildExpedienteReport } from '@/lib/reports/expediente-report';
 import { buildRetirementOutlook } from '@/lib/calculator/retirement-outlook';
+import { resolveExpedienteAsOf } from '@/lib/expediente/as-of';
 
 type Document = {
   id: string;
@@ -68,7 +69,7 @@ export default async function AnalysisPage() {
         : null;
     outlook =
       expediente && expediente.documentIds.length > 0
-        ? buildRetirementOutlook(expediente)
+        ? buildRetirementOutlook(expediente, resolveExpedienteAsOf(expediente))
         : null;
   } catch (err) {
     console.error('analysis page report/outlook:', err);

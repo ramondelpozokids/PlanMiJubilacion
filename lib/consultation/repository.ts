@@ -4,6 +4,7 @@
 import { createClient } from '@/lib/supabase/server';
 import type { ExpedienteDigital } from '@/lib/expediente/types';
 import { emptyExpediente } from '@/lib/expediente/types';
+import { ensureResumenExactDates } from '@/lib/expediente/as-of';
 import {
   DEFAULT_CONSULTATION_LIFE_PATH,
   parseLifePathJson,
@@ -84,13 +85,15 @@ function rowToCase(row: {
     typeof row.client_birth_date === 'string' && row.client_birth_date
       ? row.client_birth_date.slice(0, 10)
       : null;
+  const expediente = data?.userId ? data : emptyExpediente(row.founder_id);
+  ensureResumenExactDates(expediente);
   return {
     id: row.id,
     founderId: row.founder_id,
     clientName: row.client_name,
     clientNote: row.client_note,
     clientBirthDate: birth,
-    expediente: data?.userId ? data : emptyExpediente(row.founder_id),
+    expediente,
     lifePath: parseLifePathJson(row.life_path),
     completitudScore: row.completitud_score,
     createdAt: row.created_at,

@@ -76,6 +76,17 @@ describe('parseVidaLaboralPeriodLine (layout oficial)', () => {
     expect(p!.diasCotizados).toBe(8926);
     expect(p!.empresa).toMatch(/EMBAJADA/i);
   });
+
+  it('deja abierta la baja cuando la 3ª columna es ---', () => {
+    const p = parseVidaLaboralPeriodLine(
+      'GENERAL 28002577348 REAL MADRID CLUB FUTBOL 16.09.2025 16.09.2025 --- 100 --- 09 213'
+    );
+    expect(p).not.toBeNull();
+    expect(p!.fechaAlta).toBe('16/09/2025');
+    expect(p!.fechaBaja).toBeNull();
+    expect(p!.situacion).toBe('ALTA');
+    expect(p!.diasCotizados).toBe(213);
+  });
 });
 
 describe('parseVidaLaboralPeriodosFromText', () => {
@@ -90,13 +101,17 @@ describe('parseVidaLaboralPeriodosFromText', () => {
 });
 
 describe('parseVidaLaboralFromText', () => {
-  it('saca identidad narrativa y días computables', () => {
+  it('saca identidad narrativa y días COMPUTABLES (no el total en alta)', () => {
     const r = parseVidaLaboralFromText(SAMPLE_VIDA);
     expect(r.identificacion.nombre).toMatch(/RAMON DEL POZO/i);
     expect(r.identificacion.dni).toBe('07534307J');
     expect(r.identificacion.numeroAfiliacion).toBe('280406289544');
     expect(r.identificacion.fechaNacimiento).toBe('02/08/1967');
     expect(r.resumen.totalDiasCotizacion).toBe(12010);
+    expect(r.resumen.anosCotizados).toBe(32);
+    expect(r.resumen.mesesCotizados).toBe(10);
+    expect(r.resumen.diasAltaTotal).toBe(12332);
+    expect(r.resumen.diasPluriempleo).toBe(322);
     expect(r.periodosContrato.length).toBeGreaterThanOrEqual(2);
   });
 });
