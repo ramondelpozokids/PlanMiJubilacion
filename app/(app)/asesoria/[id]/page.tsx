@@ -27,8 +27,9 @@ import { ConsultationClientReport } from '@/components/features/consultation-cli
 import { ConsultationCaseEditor } from '@/components/features/consultation-case-editor';
 import { listConsultationCases } from '@/lib/consultation/repository';
 import { ScopeBadge } from '@/components/features/scope-badge';
-import { buildRetirementPrintReport } from '@/lib/reports/build-retirement-print-report';
-import { RetirementPrintReport } from '@/components/features/retirement-print-report';
+import { buildClientDossierReport } from '@/lib/reports/build-client-dossier-report';
+import { ClientDossierPrintReport } from '@/components/features/client-dossier-print-report';
+import { listDocumentsForScope } from '@/lib/documents/list-for-scope';
 import { format } from 'date-fns';
 import { resolveExpedienteAsOf } from '@/lib/expediente/as-of';
 
@@ -69,12 +70,18 @@ export default async function AsesoriaCasePage({
       internationalCotizaciones: c.expediente.internationalCotizaciones,
     });
 
-  const printReport =
-    hasDocs &&
-    buildRetirementPrintReport(c.expediente, {
-      clientName: c.clientName,
-      lifePath: c.lifePath,
-    });
+  const caseDocuments = await listDocumentsForScope({
+    userId: profile.id,
+    consultationCaseId: c.id,
+  });
+
+  const dossierReport = buildClientDossierReport(c.expediente, {
+    clientName: c.clientName,
+    lifePath: c.lifePath,
+    variant: 'consultation',
+    documents: caseDocuments,
+    summaryLines: summaryLines || undefined,
+  });
 
   const allCases = await listConsultationCases(profile.id);
 
@@ -146,16 +153,14 @@ export default async function AsesoriaCasePage({
         </div>
       </div>
 
-      {!hasDocs && !intl ? (
+      {!hasDocs && !intl && caseDocuments.length === 0 ? (
         <p className="rounded-lg border border-dashed p-8 text-center text-muted-foreground print:hidden">
           Sube vida laboral, bases, simulación o nómina, y completa el apartado internacional si
           ha cotizado fuera de España.
         </p>
       ) : (
         <>
-          {printReport && (
-            <RetirementPrintReport report={printReport} variant="consultation" />
-          )}
+          {dossierReport && <ClientDossierPrintReport report={dossierReport} />}
 
           <div className="print:hidden space-y-8">
             {summaryLines && (
@@ -195,7 +200,7 @@ export default async function AsesoriaCasePage({
 
             {hasDocs && (
               <section className="space-y-3">
-                <h2 className="text-lg font-semibold">Expediente documental</h2>
+                <h2 className="text-lg font-semibold">Expediente documental (pantalla)</h2>
                 <ExpedienteSections expediente={c.expediente} outlook={null} />
               </section>
             )}

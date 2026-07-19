@@ -18,8 +18,9 @@ import { buildCombinedPensionSummary } from '@/lib/international-coordination/co
 import { ScopeBadge } from '@/components/features/scope-badge';
 import { FOUNDER_LIFE_PATH } from '@/lib/calculator/life-path';
 import { FOUNDER_DISPLAY_NAME } from '@/lib/admin/config';
-import { buildRetirementPrintReport } from '@/lib/reports/build-retirement-print-report';
-import { RetirementPrintReport } from '@/components/features/retirement-print-report';
+import { buildClientDossierReport } from '@/lib/reports/build-client-dossier-report';
+import { ClientDossierPrintReport } from '@/components/features/client-dossier-print-report';
+import { listDocumentsForScope } from '@/lib/documents/list-for-scope';
 import { resolveExpedienteAsOf } from '@/lib/expediente/as-of';
 
 export const metadata = { title: 'PlanMiJubilacion', robots: { index: false } };
@@ -39,10 +40,16 @@ export default async function JubilacionPage() {
     coordination: intlResult,
   });
   const intlPricing = await getPricingRule('revision_internacional');
-  const printReport = expediente
-    ? buildRetirementPrintReport(expediente, {
+  const personalDocs = await listDocumentsForScope({
+    userId: profile!.id,
+    consultationCaseId: null,
+  });
+  const dossierReport = expediente
+    ? buildClientDossierReport(expediente, {
         clientName: FOUNDER_DISPLAY_NAME,
         lifePath: FOUNDER_LIFE_PATH,
+        variant: 'self',
+        documents: personalDocs,
       })
     : null;
 
@@ -95,7 +102,7 @@ export default async function JubilacionPage() {
         </div>
       ) : (
         <>
-          {printReport && <RetirementPrintReport report={printReport} />}
+          {dossierReport && <ClientDossierPrintReport report={dossierReport} />}
 
           <div className="print:hidden space-y-6">
             {intlResult?.spanishEstimateMayBeIncomplete && (

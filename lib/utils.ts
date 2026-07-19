@@ -1,6 +1,7 @@
 // lib/utils.ts
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { DOCUMENT_TYPES } from '@/lib/expediente/document-types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -55,6 +56,9 @@ export function displayFileName(name: string | null | undefined): string {
 /** Etiqueta legible para tipos documentales / slugs. */
 export function humanizeTypeLabel(raw: string | null | undefined): string {
   if (!raw) return '—';
+  if (raw in DOCUMENT_TYPES) {
+    return DOCUMENT_TYPES[raw as keyof typeof DOCUMENT_TYPES];
+  }
   const map: Record<string, string> = {
     vida_laboral: 'Vida laboral',
     bases_cotizacion: 'Bases de cotización',
@@ -66,6 +70,8 @@ export function humanizeTypeLabel(raw: string | null | undefined): string {
     subsidio: 'Subsidio',
     convenio_especial: 'Convenio especial',
     nomina: 'Nómina',
+    declaracion_fiscal: 'Declaración fiscal',
+    pension_extranjera: 'Pensión / carta extranjera',
   };
   if (map[raw]) return map[raw];
   if (raw.includes(' ') || /[áéíóúñÁÉÍÓÚÑ]/.test(raw) || raw.includes('.')) return raw;
