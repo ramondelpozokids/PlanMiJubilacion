@@ -5,11 +5,7 @@ import type { MiopRunResult } from '@/lib/optimization/types';
 import { evaluateInternationalCoordination } from '@/lib/international-coordination/evaluate';
 import type { InternationalCotizacionesData } from '@/lib/international-coordination/types';
 import { formatCurrencyExact } from '@/lib/utils';
-import {
-  DEFAULT_IRPF_RETENTION,
-  applyPensionIrpf,
-  pensionPaymentsLabel,
-} from '@/lib/calculator/pension-pay';
+import { applyPensionIrpf, pensionPaymentsLabel } from '@/lib/calculator/pension-pay';
 
 export function buildConsultationSummary(options: {
   clientName: string;
@@ -26,12 +22,9 @@ export function buildConsultationSummary(options: {
   );
 
   if (outlook.pension.ordinaryResult) {
-    const pay = applyPensionIrpf(
-      outlook.pension.ordinaryResult.monthlyPension,
-      DEFAULT_IRPF_RETENTION
-    )!;
+    const pay = applyPensionIrpf(outlook.pension.ordinaryResult.monthlyPension)!;
     lines.push(
-      `Jubilación ordinaria el ${outlook.ordinary.dateLabel} (a los ${outlook.ordinary.ageLabel}): ${formatCurrencyExact(pay.monthlyBruto)}/mes bruto · ${formatCurrencyExact(pay.annualBruto)}/año (${pensionPaymentsLabel()}) · ~${formatCurrencyExact(pay.netMonthly)}/mes neto (IRPF ${(DEFAULT_IRPF_RETENTION * 100).toFixed(0)} % orientativo).`
+      `Jubilación ordinaria el ${outlook.ordinary.dateLabel} (a los ${outlook.ordinary.ageLabel}): ${formatCurrencyExact(pay.monthlyBruto)}/mes bruto · ${formatCurrencyExact(pay.annualBruto)}/año (${pensionPaymentsLabel()}) · ~${formatCurrencyExact(pay.netMonthly)}/mes neto (IRPF ${(pay.irpfRetention * 100).toFixed(2).replace('.', ',')} % AEAT orientativo).`
     );
   } else {
     lines.push(
@@ -42,9 +35,7 @@ export function buildConsultationSummary(options: {
   if (outlook.earlyVoluntary.scenarios.length > 0) {
     const best = outlook.earlyVoluntary.scenarios[0];
     const earlyPay =
-      best.estimatedMonthly != null
-        ? applyPensionIrpf(best.estimatedMonthly, DEFAULT_IRPF_RETENTION)
-        : null;
+      best.estimatedMonthly != null ? applyPensionIrpf(best.estimatedMonthly) : null;
     lines.push(
       `Si se jubila anticipadamente a los ${best.retirementAge} años: reducción del ${best.reductionPercent}%` +
         (earlyPay

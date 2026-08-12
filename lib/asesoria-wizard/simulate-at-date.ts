@@ -23,10 +23,13 @@ import {
   PENSION_ANNUAL_PAYMENTS,
   DEFAULT_IRPF_RETENTION,
   applyPensionIrpf,
-  clampIrpfRetention,
+  resolvePensionIrpfRetention,
 } from '@/lib/calculator/pension-pay';
 
-export { PENSION_ANNUAL_PAYMENTS, DEFAULT_IRPF_RETENTION } from '@/lib/calculator/pension-pay';
+export {
+  PENSION_ANNUAL_PAYMENTS,
+  DEFAULT_IRPF_RETENTION,
+} from '@/lib/calculator/pension-pay';
 
 export type JubilationModality =
   | 'ordinary'
@@ -70,7 +73,7 @@ export interface BuildDateSimulationOptions {
   declareInvoluntaryCause?: boolean;
   /** Escenario vital del caso de asesoría (no el del fundador). */
   lifePath?: LifePathAssumptions;
-  /** Retención IRPF 0–1 (p. ej. 0.15 = 15 %). Orientativa. Por defecto 15 %. */
+  /** Retención IRPF 0–1. Si se omite, se estima con algoritmo AEAT 2026. */
   irpfRetention?: number;
 }
 
@@ -146,9 +149,14 @@ export function buildDateSimulation(
     assumeContinueContributing: true,
   }).date;
 
-  const irpfRetention = clampIrpfRetention(
-    opts?.irpfRetention ?? DEFAULT_IRPF_RETENTION
-  );
+  const ageAtRetirement =
+    retirementDate.getFullYear() -
+    birth.getFullYear() -
+    (retirementDate.getMonth() < birth.getMonth() ||
+    (retirementDate.getMonth() === birth.getMonth() &&
+      retirementDate.getDate() < birth.getDate())
+      ? 1
+      : 0);
 
   const sim = simulateScenario(
     expediente,
@@ -195,6 +203,10 @@ export function buildDateSimulation(
     monthlyPension != null
       ? round2(monthlyPension * PENSION_ANNUAL_PAYMENTS)
       : null;
+  const irpfRetention = resolvePensionIrpfRetention(monthlyPension, opts?.irpfRetention, {
+    ageYears: Math.max(ageAtRetirement, 65),
+    pensioner: true,
+  });
   const irpf = applyIrpf(monthlyPension, irpfRetention);
 
   return {

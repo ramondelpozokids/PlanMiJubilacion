@@ -34,13 +34,15 @@ describe('simulación a fecha (asesoría)', () => {
 
     expect(row).not.toBeNull();
     expect(row!.annualPayments).toBe(PENSION_ANNUAL_PAYMENTS);
-    expect(row!.irpfRetention).toBe(0.15);
     if (row!.monthlyPension != null && row!.monthlyPension > 0) {
       expect(row!.annualPension).toBeCloseTo(row!.monthlyPension * 14, 1);
-      expect(row!.irpfMonthly).toBeCloseTo(row!.monthlyPension * 0.15, 1);
-      expect(row!.netMonthly).toBeCloseTo(row!.monthlyPension * 0.85, 1);
-      expect(row!.netAnnual).toBeCloseTo(row!.netMonthly! * 14, 1);
-      expect(row!.netAnnual).not.toBe(row!.annualPension);
+      expect(row!.irpfRetention).toBeGreaterThanOrEqual(0);
+      expect(row!.irpfMonthly).toBeCloseTo(row!.monthlyPension * row!.irpfRetention, 1);
+      expect(row!.netMonthly).toBeCloseTo(row!.monthlyPension - (row!.irpfMonthly ?? 0), 1);
+      expect(row!.netAnnual).toBeCloseTo((row!.netMonthly ?? 0) * 14, 1);
+      if (row!.irpfRetention > 0) {
+        expect(row!.netAnnual).not.toBe(row!.annualPension);
+      }
     }
   });
 });

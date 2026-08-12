@@ -23,6 +23,7 @@ import {
 import {
   DEFAULT_IRPF_RETENTION,
   IRPF_RETENTION_PRESETS,
+  estimateAeatPensionIrpfFromMonthly,
 } from '@/lib/calculator/pension-pay';
 import {
   saveWizardBirthDateAction,
@@ -104,7 +105,7 @@ export function AsesoriaSimulationWizard({
   const router = useRouter();
   const [draft, setDraft] = useState<WizardDraftState>(emptyWizardDraft);
   const [hydrated, setHydrated] = useState(false);
-  const [irpfPct, setIrpfPct] = useState(DEFAULT_IRPF_RETENTION * 100);
+  const [irpfPct, setIrpfPct] = useState<number | null>(null); // null = AEAT automático
   const [pending, startTransition] = useTransition();
   const [uploadMsg, setUploadMsg] = useState('');
   const [expediente, setExpediente] = useState(initialExpediente);
@@ -149,19 +150,35 @@ export function AsesoriaSimulationWizard({
     setDraft((d) => (d.retirementDate ? d : { ...d, retirementDate: iso }));
   }, [hydrated, draft.retirementDate, outlook]);
 
-  const irpfRetention = Math.min(50, Math.max(0, irpfPct)) / 100;
+  const irpfRetention =
+    irpfPct == null ? undefined : Math.min(50, Math.max(0, irpfPct)) / 100;
 
   const selectedSim: DateSimulationRow | null = useMemo(() => {
     if (!expediente || !draft.retirementDate) return null;
     const d = new Date(draft.retirementDate + 'T12:00:00');
     if (Number.isNaN(d.getTime())) return null;
-    return buildDateSimulation(expediente, d, { irpfRetention });
+    return buildDateSimulation(expediente, d, {
+      ...(irpfRetention != null ? { irpfRetention } : {}),
+    });
   }, [expediente, draft.retirementDate, irpfRetention]);
 
   const comparison = useMemo(
-    () => (expediente ? buildComparisonTable(expediente, { irpfRetention }) : []),
+    () =>
+      expediente
+        ? buildComparisonTable(
+            expediente,
+            irpfRetention != null ? { irpfRetention } : undefined
+          )
+        : [],
     [expediente, irpfRetention]
   );
+
+  const aeatHintPct = useMemo(() => {
+    const m = selectedSim?.monthlyPension;
+    if (m == null) return null;
+    const r = estimateAeatPensionIrpfFromMonthly(m, { ageYears: 65, pensioner: true });
+    return r == null ? null : Math.round(r * 10000) / 100;
+  }, [selectedSim?.monthlyPension]);
 
   function go(step: WizardStepId) {
     setDraft((d) => ({ ...d, step }));
@@ -682,27 +699,45 @@ export function AsesoriaSimulationWizard({
                   type="number"
                   min={0}
                   max={50}
-                  step={0.5}
-                  value={irpfPct}
+                  step={0.01}
+                  value={
+                    irpfPct ??
+                    aeatHintPct ??
+                    (selectedSim ? selectedSim.irpfRetention * 100 : DEFAULT_IRPF_RETENTION * 100)
+                  }
                   onChange={(e) => setIrpfPct(Number(e.target.value) || 0)}
                   className="mt-1 w-full max-w-xs rounded-md border bg-background px-3 py-2 text-sm"
                 />
               </label>
               <div className="flex flex-wrap gap-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={irpfPct == null ? 'primary' : 'secondary'}
+                  onClick={() => setIrpfPct(null)}
+                >
+                  AEAT auto
+                  {aeatHintPct != null ? ` (${aeatHintPct.toFixed(2).replace('.', ',')} %)` : ''}
+                </Button>
                 {IRPF_RETENTION_PRESETS.map((p) => (
                   <Button
                     key={p.label}
                     type="button"
                     size="sm"
-                    variant={Math.abs(irpfPct - p.value * 100) < 0.01 ? 'primary' : 'secondary'}
-                    onClick={() => setIrpfPct(p.value * 100)}
+                    variant={
+                      irpfPct != null && Math.abs(irpfPct - p.value * 100) < 0.05
+                        ? 'primary'
+                        : 'secondary'
+                    }
+                    onClick={() => setIrpfPct(Math.round(p.value * 10000) / 100)}
                   >
                     {p.label}
                   </Button>
                 ))}
               </div>
               <p className="text-xs text-muted-foreground">
-                Por defecto 15 %. El IRPF real lo fija la AEAT según situación personal y familiar.
+                Por defecto: algoritmo AEAT 2026 (pensionista ≥65, sin hijos). El IRPF real lo fija
+                la AEAT según situación personal y familiar.
               </p>
             </div>
 

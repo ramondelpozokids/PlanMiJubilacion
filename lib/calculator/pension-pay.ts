@@ -1,12 +1,23 @@
 /**
  * Pagas anuales y neto orientativo tras IRPF (pensión contributiva SS).
  * 14 pagas = 12 mensuales + 2 extras.
+ * Tipo por defecto: estimación algoritmo AEAT 2026 (no un % fijo).
  */
+import {
+  estimateAeatPensionIrpfFromMonthly,
+  type AeatIrpfAssumptions,
+} from './aeat-irpf';
+
+export { estimateAeatPensionIrpf, estimateAeatPensionIrpfFromMonthly } from './aeat-irpf';
+export type { AeatIrpfAssumptions, AeatIrpfEstimate } from './aeat-irpf';
 
 /** Pagas anuales de la pensión contributiva de jubilación (SS). */
 export const PENSION_ANNUAL_PAYMENTS = 14;
 
-/** Retención IRPF orientativa por defecto (15 %). */
+/**
+ * Fallback si no hay importe para estimar (p. ej. UI sin simulación aún).
+ * Con pensión conocida se usa `resolvePensionIrpfRetention` (AEAT).
+ */
 export const DEFAULT_IRPF_RETENTION = 0.15;
 
 /** Presets de retención IRPF (0–1) para UI. */
@@ -14,6 +25,7 @@ export const IRPF_RETENTION_PRESETS = [
   { label: '0 %', value: 0 },
   { label: '8 %', value: 0.08 },
   { label: '15 %', value: 0.15 },
+  { label: '18 %', value: 0.1817 },
   { label: '19 %', value: 0.19 },
   { label: '24 %', value: 0.24 },
 ] as const;
@@ -42,15 +54,33 @@ export function annualBrutoFromMonthly(monthly: number): number {
 }
 
 /**
+ * Resuelve el tipo de retención: AEAT estimado si hay pensión mensual,
+ * o el override manual / fallback.
+ */
+export function resolvePensionIrpfRetention(
+  monthly: number | null | undefined,
+  override?: number | null,
+  assumptions: AeatIrpfAssumptions = { ageYears: 65, pensioner: true }
+): number {
+  if (override != null && Number.isFinite(override)) {
+    return clampIrpfRetention(override);
+  }
+  const estimated = estimateAeatPensionIrpfFromMonthly(monthly, assumptions);
+  if (estimated != null) return clampIrpfRetention(estimated);
+  return DEFAULT_IRPF_RETENTION;
+}
+
+/**
  * Desglose bruto → IRPF → neto (orientativo).
- * `retention` es 0–1 (p. ej. 0.15 = 15 %).
+ * Sin `retention`, estima con algoritmo AEAT 2026 (pensionista 65 años).
  */
 export function applyPensionIrpf(
   monthly: number | null,
-  retention: number = DEFAULT_IRPF_RETENTION
+  retention?: number | null,
+  assumptions?: AeatIrpfAssumptions
 ): PensionPayBreakdown | null {
   if (monthly == null) return null;
-  const irpfRetention = clampIrpfRetention(retention);
+  const irpfRetention = resolvePensionIrpfRetention(monthly, retention, assumptions);
   const irpfMonthly = round2(monthly * irpfRetention);
   const netMonthly = round2(monthly - irpfMonthly);
   return {

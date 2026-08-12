@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import type { RetirementOutlook } from '@/lib/calculator/retirement-outlook';
 import { describeLifePathTramos } from '@/lib/calculator/life-path';
 import {
-  DEFAULT_IRPF_RETENTION,
   IRPF_RETENTION_PRESETS,
   applyPensionIrpf,
+  resolvePensionIrpfRetention,
   pensionPaymentsLabel,
 } from '@/lib/calculator/pension-pay';
 import { formatCurrency } from '@/lib/utils';
@@ -24,15 +24,16 @@ export function RetirementOutlookCard({
   variant?: 'self' | 'consultation';
   clientName?: string;
 }) {
-  const [irpfRetention, setIrpfRetention] = useState(DEFAULT_IRPF_RETENTION);
   const p = outlook.pension.ordinaryResult;
+  const aeatDefault = resolvePensionIrpfRetention(p?.monthlyPension ?? null);
+  const [irpfRetention, setIrpfRetention] = useState(aeatDefault);
   const pay = p ? applyPensionIrpf(p.monthlyPension, irpfRetention) : null;
   const sim = outlook.pension.officialSimReference;
   const path = outlook.pension.lifePath;
   const tramos = describeLifePathTramos(path);
   const who = variant === 'consultation' ? clientName ?? 'Esta persona' : 'Tú';
   const possessive = variant === 'consultation' ? 'su' : 'tu';
-  const irpfPctLabel = `${(irpfRetention * 100).toFixed(0)} %`;
+  const irpfPctLabel = `${(irpfRetention * 100).toFixed(2).replace('.', ',')} %`;
 
   return (
     <Card className="border-2 border-foreground/15">

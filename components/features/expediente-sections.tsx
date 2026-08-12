@@ -15,11 +15,7 @@ import {
 } from '@/lib/utils';
 import { evaluateInternationalCoordination } from '@/lib/international-coordination/evaluate';
 import { InternationalCotizacionesReport } from '@/components/features/international-cotizaciones-report';
-import {
-  DEFAULT_IRPF_RETENTION,
-  applyPensionIrpf,
-  pensionPaymentsLabel,
-} from '@/lib/calculator/pension-pay';
+import { applyPensionIrpf, pensionPaymentsLabel } from '@/lib/calculator/pension-pay';
 
 type DateSort = 'desc' | 'asc';
 
@@ -178,10 +174,7 @@ export function ExpedienteSections({
           <Stat n={expediente.documentIds.length} label="Documentos" />
         </div>
         {outlook?.pension.ordinaryResult && (() => {
-          const pay = applyPensionIrpf(
-            outlook.pension.ordinaryResult.monthlyPension,
-            DEFAULT_IRPF_RETENTION
-          )!;
+          const pay = applyPensionIrpf(outlook.pension.ordinaryResult.monthlyPension)!;
           return (
             <div className="mt-4 rounded-lg border bg-muted/20 px-4 py-3 text-sm">
               <p className="text-muted-foreground">Pensión ordinaria estimada</p>
@@ -196,7 +189,8 @@ export function ExpedienteSections({
                 {formatCurrencyExact(pay.netMonthly)}
                 <span className="font-normal text-muted-foreground">
                   {' '}
-                  /mes neto (IRPF {(DEFAULT_IRPF_RETENTION * 100).toFixed(0)} % orientativo)
+                  /mes neto (IRPF {(pay.irpfRetention * 100).toFixed(2).replace('.', ',')} % AEAT
+                  orientativo)
                 </span>
               </p>
             </div>
