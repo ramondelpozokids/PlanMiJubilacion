@@ -1,11 +1,11 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { createClient, getUser } from '@/lib/supabase/server';
 import { deleteDocument as deleteFromStorage } from '@/lib/supabase/storage';
 import { saveExpediente } from '@/lib/expediente/repository';
 import { rebuildExpedienteFromDocuments } from '@/lib/ocr/pipeline';
 import { emptyExpediente } from '@/lib/expediente/types';
+import { revalidateProductPaths } from '@/lib/documents/revalidate-product-paths';
 
 export async function deleteDocumentById(documentId: string) {
   const user = await getUser();
@@ -40,9 +40,7 @@ export async function deleteDocumentById(documentId: string) {
 
   await rebuildExpedienteFromDocuments(user.id);
 
-  revalidatePath('/dashboard');
-  revalidatePath('/analysis');
-  revalidatePath('/upload');
+  revalidateProductPaths();
 
   return { success: true, name: doc.name };
 }
@@ -81,9 +79,7 @@ export async function deleteAllDocuments() {
   await supabase2.from('scenarios').delete().eq('user_id', user.id);
   await supabase2.from('extracted_data').delete().eq('user_id', user.id);
 
-  revalidatePath('/dashboard');
-  revalidatePath('/analysis');
-  revalidatePath('/upload');
+  revalidateProductPaths();
 
   return { success: true, count: docs?.length ?? 0 };
 }

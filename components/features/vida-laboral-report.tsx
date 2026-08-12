@@ -105,7 +105,11 @@ export function VidaLaboralReport({ data }: { data: FullDocumentExtraction | unk
           <CardContent className="space-y-2 text-sm">
             <Field
               label="Total cotizado"
-              value={formatCotizacionLabel(res.anosCotizados, res.mesesCotizados)}
+              value={formatCotizacionLabel(
+                res.anosCotizados,
+                res.mesesCotizados,
+                res.diasRestantes
+              )}
             />
             <Field label="Total días cotización" value={res.totalDiasCotizacion} />
             <Field label="Régimen principal" value={res.regimenPrincipal} />

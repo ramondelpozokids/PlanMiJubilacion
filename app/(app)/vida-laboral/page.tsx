@@ -61,9 +61,25 @@ export default async function VidaLaboralPage() {
               <p className="mt-2 text-3xl font-semibold tabular-nums">
                 {expediente?.resumen.anosCotizados?.value ?? '—'}
               </p>
-              {expediente?.resumen.mesesCotizados?.value != null && (
+              {(expediente?.resumen.mesesCotizados?.value != null ||
+                expediente?.resumen.diasRestantes?.value != null) && (
                 <p className="mt-1 text-sm text-muted-foreground">
-                  + {expediente.resumen.mesesCotizados.value} meses
+                  {[
+                    expediente?.resumen.mesesCotizados?.value != null
+                      ? `+ ${expediente.resumen.mesesCotizados.value} meses`
+                      : null,
+                    expediente?.resumen.diasRestantes?.value != null
+                      ? `${expediente.resumen.diasRestantes.value} días`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </p>
+              )}
+              {expediente?.resumen.totalDiasCotizacion?.value != null && (
+                <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+                  {expediente.resumen.totalDiasCotizacion.value.toLocaleString('es-ES')} días
+                  computables
                 </p>
               )}
             </div>

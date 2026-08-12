@@ -30,16 +30,17 @@ describe('simulación a fecha (asesoría)', () => {
 
     const row = buildDateSimulation(exp, new Date(2030, 2, 15), {
       lifePath: DEFAULT_CONSULTATION_LIFE_PATH,
-      irpfRetention: 0.15,
     });
 
     expect(row).not.toBeNull();
     expect(row!.annualPayments).toBe(PENSION_ANNUAL_PAYMENTS);
+    expect(row!.irpfRetention).toBe(0.15);
     if (row!.monthlyPension != null && row!.monthlyPension > 0) {
       expect(row!.annualPension).toBeCloseTo(row!.monthlyPension * 14, 1);
       expect(row!.irpfMonthly).toBeCloseTo(row!.monthlyPension * 0.15, 1);
       expect(row!.netMonthly).toBeCloseTo(row!.monthlyPension * 0.85, 1);
       expect(row!.netAnnual).toBeCloseTo(row!.netMonthly! * 14, 1);
+      expect(row!.netAnnual).not.toBe(row!.annualPension);
     }
   });
 });

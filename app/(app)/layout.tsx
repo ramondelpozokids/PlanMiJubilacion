@@ -1,5 +1,6 @@
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import { ChatWidget } from '@/components/features/chat-widget';
+import { DocumentsProcessingBanner } from '@/components/features/documents-processing-banner';
 import { getProfile } from '@/lib/supabase/server';
 import { getAccessLabel, hasUnlimitedAccess } from '@/lib/admin/access';
 import { redirect } from 'next/navigation';
@@ -26,6 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen flex">
       <AppSidebar accessLabel={accessLabel} isFounder={isFounder} />
       <main id="main" className="flex-1 p-6 md:p-10 max-w-7xl w-full">
+        <DocumentsProcessingBanner />
         {children}
       </main>
       <ChatWidget />

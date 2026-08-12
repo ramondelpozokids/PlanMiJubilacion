@@ -8,14 +8,14 @@ import { uploadDocumentOnly } from '@/app/(app)/upload/actions';
 import { useRouter } from 'next/navigation';
 import { DOCUMENT_TYPES, DOCUMENT_TYPE_KEYS } from '@/lib/expediente/document-types';
 
-async function enqueueProcess(documentId: string) {
+async function processDocument(documentId: string) {
   const res = await fetch('/api/documents/process', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ documentId, wait: false }),
+    body: JSON.stringify({ documentId, wait: true }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error ?? 'Error al encolar');
+  if (!res.ok) throw new Error(data.error ?? 'Error al analizar el documento');
   return data;
 }
 
@@ -61,14 +61,15 @@ export function Dropzone() {
         ids.push(uploaded.documentId);
       }
 
-      setProgress('Encolando análisis IA…');
-      for (const id of ids) {
-        await enqueueProcess(id);
+      for (let i = 0; i < ids.length; i++) {
+        setProgress(`Analizando ${i + 1}/${ids.length}… actualizando expediente`);
+        await processDocument(ids[i]!);
       }
 
       toast.success(
-        `${ids.length} documento(s) en cola. El expediente se actualiza automáticamente.`
+        `${ids.length} documento(s) analizados. Vida laboral, jubilación y el resto de páginas ya están al día.`
       );
+      setFiles([]);
       router.push('/analysis');
       router.refresh();
     } catch (error) {
@@ -98,7 +99,7 @@ export function Dropzone() {
         <input {...getInputProps()} />
         <div className="text-lg font-medium">Arrastra tus documentos aquí</div>
         <div className="text-sm text-muted-foreground mt-2">
-          PDF, JPG, PNG, WEBP · Máx. 10MB · Análisis en cola
+          PDF, JPG, PNG, WEBP · Máx. 10MB · Análisis inmediato en todas las páginas
           {documentType === 'bases_cotizacion' && (
             <span className="block mt-1 text-foreground">
               Bases: solo se guardan meses hasta hoy (se ignoran proyecciones / “presente”).
@@ -154,7 +155,7 @@ export function Dropzone() {
           Cancelar
         </Button>
         <Button onClick={handleUpload} disabled={files.length === 0 || uploading}>
-          {uploading ? 'Subiendo…' : 'Analizar con IA'}
+          {uploading ? 'Analizando…' : 'Analizar con IA'}
         </Button>
       </div>
     </div>

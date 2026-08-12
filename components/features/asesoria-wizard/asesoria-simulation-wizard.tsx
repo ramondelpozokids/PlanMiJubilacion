@@ -21,6 +21,10 @@ import {
   type DateSimulationRow,
 } from '@/lib/asesoria-wizard/simulate-at-date';
 import {
+  DEFAULT_IRPF_RETENTION,
+  IRPF_RETENTION_PRESETS,
+} from '@/lib/calculator/pension-pay';
+import {
   saveWizardBirthDateAction,
   uploadWizardDocumentAction,
 } from '@/app/(app)/asesoria/wizard-actions';
@@ -77,14 +81,15 @@ function Progress({ current }: { current: WizardStepId }) {
   );
 }
 
-async function enqueueProcess(documentId: string) {
+async function processDocument(documentId: string) {
   const res = await fetch('/api/documents/process', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ documentId, wait: false }),
+    body: JSON.stringify({ documentId, wait: true }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error ?? 'Error al encolar análisis');
+  if (!res.ok) throw new Error(data.error ?? 'Error al analizar el documento');
+  return data;
 }
 
 export function AsesoriaSimulationWizard({
@@ -99,6 +104,7 @@ export function AsesoriaSimulationWizard({
   const router = useRouter();
   const [draft, setDraft] = useState<WizardDraftState>(emptyWizardDraft);
   const [hydrated, setHydrated] = useState(false);
+  const [irpfPct, setIrpfPct] = useState(DEFAULT_IRPF_RETENTION * 100);
   const [pending, startTransition] = useTransition();
   const [uploadMsg, setUploadMsg] = useState('');
   const [expediente, setExpediente] = useState(initialExpediente);
@@ -143,16 +149,18 @@ export function AsesoriaSimulationWizard({
     setDraft((d) => (d.retirementDate ? d : { ...d, retirementDate: iso }));
   }, [hydrated, draft.retirementDate, outlook]);
 
+  const irpfRetention = Math.min(50, Math.max(0, irpfPct)) / 100;
+
   const selectedSim: DateSimulationRow | null = useMemo(() => {
     if (!expediente || !draft.retirementDate) return null;
     const d = new Date(draft.retirementDate + 'T12:00:00');
     if (Number.isNaN(d.getTime())) return null;
-    return buildDateSimulation(expediente, d);
-  }, [expediente, draft.retirementDate]);
+    return buildDateSimulation(expediente, d, { irpfRetention });
+  }, [expediente, draft.retirementDate, irpfRetention]);
 
   const comparison = useMemo(
-    () => (expediente ? buildComparisonTable(expediente) : []),
-    [expediente]
+    () => (expediente ? buildComparisonTable(expediente, { irpfRetention }) : []),
+    [expediente, irpfRetention]
   );
 
   function go(step: WizardStepId) {
@@ -209,8 +217,8 @@ export function AsesoriaSimulationWizard({
       throw new Error(res.error);
     }
     if (res.needsClientEnqueue) {
-      setUploadMsg('Analizando con IA…');
-      await enqueueProcess(res.documentId);
+      setUploadMsg('Analizando con IA… actualizando todas las páginas');
+      await processDocument(res.documentId);
     }
     setDraft((d) => ({
       ...d,
@@ -220,10 +228,10 @@ export function AsesoriaSimulationWizard({
           id: res.documentId,
           kind,
           name: file.name,
-          status: res.spreadsheetOnly ? 'done' : 'queued',
+          status: 'done',
           message: res.spreadsheetOnly
             ? 'Hoja guardada (extracción Excel/CSV en ampliación)'
-            : 'En cola de análisis',
+            : 'Analizado e incorporado al expediente',
         },
       ],
     }));
@@ -231,7 +239,7 @@ export function AsesoriaSimulationWizard({
     toast.success(
       res.spreadsheetOnly
         ? 'Archivo guardado. La extracción CSV/Excel se ampliará; sube también PDF si puedes.'
-        : 'Documento en análisis. El expediente se actualizará en unos segundos.'
+        : 'Documento analizado. Vida laboral, jubilación y el resto de páginas ya están al día.'
     );
     router.refresh();
   }
@@ -666,6 +674,37 @@ export function AsesoriaSimulationWizard({
                 </table>
               </div>
             )}
+
+            <div className="rounded-xl border bg-muted/10 p-4 space-y-3">
+              <label className="block text-sm">
+                <span className="text-muted-foreground">IRPF retención orientativa (%)</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={50}
+                  step={0.5}
+                  value={irpfPct}
+                  onChange={(e) => setIrpfPct(Number(e.target.value) || 0)}
+                  className="mt-1 w-full max-w-xs rounded-md border bg-background px-3 py-2 text-sm"
+                />
+              </label>
+              <div className="flex flex-wrap gap-1">
+                {IRPF_RETENTION_PRESETS.map((p) => (
+                  <Button
+                    key={p.label}
+                    type="button"
+                    size="sm"
+                    variant={Math.abs(irpfPct - p.value * 100) < 0.01 ? 'primary' : 'secondary'}
+                    onClick={() => setIrpfPct(p.value * 100)}
+                  >
+                    {p.label}
+                  </Button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Por defecto 15 %. El IRPF real lo fija la AEAT según situación personal y familiar.
+              </p>
+            </div>
 
             <SimulationCalculationBreakdown row={selectedSim} />
 

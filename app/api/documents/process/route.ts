@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getUser } from '@/lib/supabase/server';
 import { processQueuedDocument } from '@/lib/ocr/queue';
-import { revalidatePath } from 'next/cache';
+import { revalidateProductPaths } from '@/lib/documents/revalidate-product-paths';
 import { rateLimit } from '@/lib/security/rate-limit';
 
 export const maxDuration = 300;
@@ -30,17 +30,13 @@ export async function POST(req: Request) {
   if (!wait) {
     // Fire-and-forget: responde ya y procesa en background
     void processQueuedDocument(user.id, documentId, { force }).then(() => {
-      revalidatePath('/dashboard');
-      revalidatePath('/analysis');
-      revalidatePath('/upload');
+      revalidateProductPaths();
     });
     return NextResponse.json({ success: true, queued: true, documentId });
   }
 
   const result = await processQueuedDocument(user.id, documentId, { force });
-  revalidatePath('/dashboard');
-  revalidatePath('/analysis');
-  revalidatePath('/upload');
+  revalidateProductPaths();
 
   if (!result.success) {
     return NextResponse.json({ error: result.error }, { status: 500 });

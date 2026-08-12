@@ -1,11 +1,11 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { uploadDocument, downloadDocument } from '@/lib/supabase/storage';
 import { countFullExtractionFields } from '@/lib/ai/document-ai';
 import { runDocumentPipeline } from '@/lib/ocr/pipeline';
 import { DOCUMENT_TYPES } from '@/lib/expediente/document-types';
+import { revalidateProductPaths } from '@/lib/documents/revalidate-product-paths';
 import { z } from 'zod';
 
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
@@ -111,8 +111,7 @@ export async function uploadDocumentOnly(formData: FormData) {
       return { success: false as const, error: friendlyError(docError) };
     }
 
-    revalidatePath('/upload');
-    revalidatePath('/analysis');
+    revalidateProductPaths();
 
     return { success: true as const, documentId: doc.id, status: 'pending' as const };
   } catch (error) {
@@ -195,12 +194,7 @@ export async function uploadAndProcessDocument(formData: FormData) {
         await deleteDocumentRows(supabase, user.id, result.replacedDocs);
       }
 
-      revalidatePath('/dashboard');
-      revalidatePath('/analysis');
-      revalidatePath('/upload');
-      revalidatePath('/vida-laboral');
-      revalidatePath('/jubilacion');
-      revalidatePath('/prestaciones');
+      revalidateProductPaths();
 
       return {
         success: true as const,
@@ -251,13 +245,7 @@ export async function reprocessDocumentById(documentId: string) {
       };
     }
 
-    revalidatePath('/dashboard');
-    revalidatePath('/analysis');
-    revalidatePath('/upload');
-    revalidatePath('/comparator');
-    revalidatePath('/vida-laboral');
-    revalidatePath('/jubilacion');
-    revalidatePath('/prestaciones');
+    revalidateProductPaths();
 
     return {
       success: true as const,

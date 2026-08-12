@@ -1,11 +1,11 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { getProfile } from '@/lib/supabase/server';
 import { loadExpediente, saveExpediente } from '@/lib/expediente/repository';
 import { uploadDocumentOnly } from '@/app/(app)/upload/actions';
 import { DOCUMENT_TYPE_KEYS } from '@/lib/expediente/document-types';
 import type { DocumentTypeKey } from '@/lib/expediente/document-types';
+import { revalidateProductPaths } from '@/lib/documents/revalidate-product-paths';
 
 const IMAGE_PDF = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
 const SPREADSHEET = [
@@ -58,8 +58,7 @@ export async function saveWizardBirthDateAction(birthIso: string) {
     };
     expediente.updatedAt = new Date().toISOString();
     await saveExpediente(expediente);
-    revalidatePath('/asesoria');
-    revalidatePath('/jubilacion');
+    revalidateProductPaths();
     return { success: true as const, ok: true as const };
   } catch (e) {
     return fail(e instanceof Error ? e.message : 'Error al guardar');
@@ -119,8 +118,7 @@ export async function uploadWizardDocumentAction(formData: FormData) {
         .select('id')
         .single();
       if (error || !doc) return fail(error?.message ?? 'No se pudo registrar el documento');
-      revalidatePath('/asesoria');
-      revalidatePath('/analysis');
+      revalidateProductPaths();
       return {
         success: true as const,
         documentId: doc.id as string,
@@ -135,7 +133,7 @@ export async function uploadWizardDocumentAction(formData: FormData) {
     const uploaded = await uploadDocumentOnly(fd);
     if (!uploaded.success) return fail(uploaded.error);
 
-    revalidatePath('/asesoria');
+    revalidateProductPaths();
     return {
       success: true as const,
       documentId: uploaded.documentId,

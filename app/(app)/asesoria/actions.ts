@@ -1,6 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { getProfile } from '@/lib/supabase/server';
 import { hasUnlimitedAccess } from '@/lib/admin/access';
@@ -16,6 +15,7 @@ import {
 } from '@/lib/consultation/repository';
 import { runConsultationPipeline } from '@/lib/consultation/pipeline';
 import type { LifePathAssumptions } from '@/lib/calculator/life-path';
+import { revalidateProductPaths } from '@/lib/documents/revalidate-product-paths';
 
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
 const MAX_SIZE = 10 * 1024 * 1024;
@@ -43,9 +43,7 @@ async function requireFounder() {
 }
 
 function revalidateAsesoria(caseId?: string) {
-  revalidatePath('/asesoria');
-  revalidatePath('/asesoria/consultas');
-  if (caseId) revalidatePath(`/asesoria/${caseId}`);
+  revalidateProductPaths(caseId);
 }
 
 export async function createCaseAction(formData: FormData) {

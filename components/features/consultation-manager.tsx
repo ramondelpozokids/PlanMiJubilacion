@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { DOCUMENT_TYPES } from '@/lib/expediente/document-types';
 import { createCaseAction, uploadConsultationDocumentAction } from '@/app/(app)/asesoria/actions';
@@ -15,6 +16,7 @@ export function ConsultationManager({
   cases: ConsultationCaseMeta[];
   uploadOnly?: boolean;
 }) {
+  const router = useRouter();
   const [caseId, setCaseId] = useState(cases[0]?.id ?? '');
   const [pending, setPending] = useState(false);
 
@@ -62,6 +64,7 @@ export function ConsultationManager({
           : `Documento procesado · expediente ${res.completitud}%`
       );
       form.reset();
+      router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error');
     } finally {

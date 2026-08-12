@@ -337,11 +337,14 @@ export function computeAge(fechaNacimiento: string | null): number | null {
 
 export function formatCotizacionLabel(
   anos: number | null | undefined,
-  meses: number | null | undefined
+  meses: number | null | undefined,
+  dias?: number | null | undefined
 ): string {
-  if (anos == null && meses == null) return '—';
-  if (anos != null && meses != null && meses > 0) return `${anos} años y ${meses} meses`;
-  if (anos != null) return `${anos} años`;
-  if (meses != null) return `${meses} meses`;
-  return '—';
+  if (anos == null && meses == null && (dias == null || dias === 0)) return '—';
+  const bits: string[] = [];
+  if (anos != null) bits.push(`${anos} año${anos === 1 ? '' : 's'}`);
+  if (meses != null && meses > 0) bits.push(`${meses} mes${meses === 1 ? '' : 'es'}`);
+  if (dias != null && dias > 0) bits.push(`${dias} día${dias === 1 ? '' : 's'}`);
+  if (bits.length === 0 && anos != null) return `${anos} años`;
+  return bits.join(', ') || '—';
 }

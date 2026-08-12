@@ -18,6 +18,7 @@ import { applyFounderIdentity } from '../lib/admin/founder-identity';
 import { FOUNDER } from '../lib/admin/config';
 
 const VL_CANDIDATES = [
+  'C:/Users/X/Desktop/vida_laboral.pdf',
   'C:/Users/X/Documents/Vida laboral/vida_laboral.pdf',
   'C:/Users/X/Desktop/Desempleo/vida_laboral.pdf',
   'C:/Users/X/Desktop/SEPE/Vida laboral Ramón.pdf',

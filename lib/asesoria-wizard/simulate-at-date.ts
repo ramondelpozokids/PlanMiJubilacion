@@ -21,11 +21,12 @@ import type { LifePathAssumptions } from '@/lib/calculator/life-path';
 import { FOUNDER_LIFE_PATH } from '@/lib/calculator/life-path';
 import {
   PENSION_ANNUAL_PAYMENTS,
+  DEFAULT_IRPF_RETENTION,
   applyPensionIrpf,
   clampIrpfRetention,
 } from '@/lib/calculator/pension-pay';
 
-export { PENSION_ANNUAL_PAYMENTS } from '@/lib/calculator/pension-pay';
+export { PENSION_ANNUAL_PAYMENTS, DEFAULT_IRPF_RETENTION } from '@/lib/calculator/pension-pay';
 
 export type JubilationModality =
   | 'ordinary'
@@ -69,7 +70,7 @@ export interface BuildDateSimulationOptions {
   declareInvoluntaryCause?: boolean;
   /** Escenario vital del caso de asesoría (no el del fundador). */
   lifePath?: LifePathAssumptions;
-  /** Retención IRPF 0–1 (p. ej. 0.15 = 15 %). Orientativa. */
+  /** Retención IRPF 0–1 (p. ej. 0.15 = 15 %). Orientativa. Por defecto 15 %. */
   irpfRetention?: number;
 }
 
@@ -145,7 +146,9 @@ export function buildDateSimulation(
     assumeContinueContributing: true,
   }).date;
 
-  const irpfRetention = clampIrpfRetention(opts?.irpfRetention ?? 0);
+  const irpfRetention = clampIrpfRetention(
+    opts?.irpfRetention ?? DEFAULT_IRPF_RETENTION
+  );
 
   const sim = simulateScenario(
     expediente,

@@ -202,9 +202,24 @@ export default async function DashboardPage() {
             <div className="text-3xl font-semibold tabular-nums">
               {exp?.resumen.anosCotizados?.value ?? '—'}
             </div>
-            {exp?.resumen.mesesCotizados?.value != null && (
+            {(exp?.resumen.mesesCotizados?.value != null ||
+              exp?.resumen.diasRestantes?.value != null) && (
               <p className="mt-1 text-sm text-muted-foreground">
-                + {exp.resumen.mesesCotizados.value} meses
+                {[
+                  exp?.resumen.mesesCotizados?.value != null
+                    ? `+ ${exp.resumen.mesesCotizados.value} meses`
+                    : null,
+                  exp?.resumen.diasRestantes?.value != null
+                    ? `${exp.resumen.diasRestantes.value} días`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+            )}
+            {exp?.resumen.totalDiasCotizacion?.value != null && (
+              <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+                {exp.resumen.totalDiasCotizacion.value.toLocaleString('es-ES')} días computables
               </p>
             )}
           </CardContent>
